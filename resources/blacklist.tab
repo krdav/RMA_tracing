@@ -1,2 +1,5 @@
-Description	MW	RT
-Sodium adduct [M + 2Na -H]+	329.06576	9.892
+Description	MW	RT	Polarity	MW_ppm_tol	RT_tol
+GSH Sodium adduct [M + 2Na -H]+	329.06576	9.892	pos	4	2
+GSH in-source fragment	273.09605	9.806	neg	4	2
+GSH in-source duplet	614.16801	9.835	neg	4	2
+GSH artifact	306.05235	9.993	neg	4	2

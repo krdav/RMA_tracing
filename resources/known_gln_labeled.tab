@@ -1,14 +1,14 @@
-Name	Label	Formula	RT	Mass
-GSH	m	C10 H17 N3 O6 S	9.8	307.083809
-GSH	m+5	C5 [13]C5 H17 N3 O6 S	9.8	312.100584
-S-Glutathionyl-cysteine	m	C13 H22 N4 O8 S2	11.38	426.08790999999997
-S-Glutathionyl-cysteine	m+5	C8 [13]C5 H22 N4 O8 S2	11.38	431.10468499999996
-GSSG	m	C20 H32 N6 O12 S2	11.94	612.1519679999999
-GSSG	m+5	C15 [13]C5 H32 N6 O12 S2	11.94	617.168743
-GSSG	m+10	C10 [13]C10 H32 N6 O12 S2	11.94	622.185518
-Glutamine	m	C5 H10 N2 O3	9.8	146.069143
-Glutamine	m+5	[13]C5 H10 N2 O3	9.8	151.085918
-S-Lactoylglutathione	m	C13 H21 N3 O8 S	9.12	379.10493899999994
-S-Lactoylglutathione	m+5	C8 [13]C5 H21 N3 O8 S	9.12	384.121714
-S-(Formylmethyl)glutathione	m	C12 H19 N3 O7 S	8.89	349.094374
-S-(Formylmethyl)glutathione	m+5	C7 [13]C5 H19 N3 O7 S	8.89	354.11114899999995
+Name	Label	Formula	RT
+GSH	m	C10 H17 N3 O6 S	9.8
+GSH	m+5	C5 [13]C5 H17 N3 O6 S	9.8
+S-Glutathionyl-cysteine	m	C13 H22 N4 O8 S2	11.38
+S-Glutathionyl-cysteine	m+5	C8 [13]C5 H22 N4 O8 S2	11.38
+GSSG	m	C20 H32 N6 O12 S2	11.94
+GSSG	m+5	C15 [13]C5 H32 N6 O12 S2	11.94
+GSSG	m+10	C10 [13]C10 H32 N6 O12 S2	11.94
+Glutamine	m	C5 H10 N2 O3	9.8
+Glutamine	m+5	[13]C5 H10 N2 O3	9.8
+S-Lactoylglutathione	m	C13 H21 N3 O8 S	9.12
+S-Lactoylglutathione	m+5	C8 [13]C5 H21 N3 O8 S	9.12
+S-(Formylmethyl)glutathione	m	C12 H19 N3 O7 S	8.89
+S-(Formylmethyl)glutathione	m+5	C7 [13]C5 H19 N3 O7 S	8.89

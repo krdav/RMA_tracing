@@ -6,13 +6,12 @@ class PeakData:
     import pandas as _pd
     import numpy as _np
     import random as _rd
-#    from IPython.display import display, HTML
     import copy as _cp
 
     def __init__(self, name, sample_names, sample_label, min_label, params):
         self.name = name
-        self.sample_names = sample_names # Dictionary mapping the area column (sample) names to a more descriptive sample name
-        self.sample_label = sample_label # Which sample names are labelled with what label e.g. ?
+        self.sample_names = make_lowercase_dict(sample_names) # Dictionary mapping the area column (sample) names to a more descriptive sample name
+        self.sample_label = make_lowercase_dict(sample_label) # Which sample names are labelled with what label e.g. ?
         self.min_label = min_label       # Minimum number of labeled samples where the peak pair passes area ratio criterium
         self.params = params
         # Dummy for peak data:
@@ -64,14 +63,13 @@ class PeakData:
         peak_data = csv.loc[:, col_sele]
 
         # Get sample names from sample description:
-        sample_names = list(self.sample_names.keys())
         colname_list = []
         area_colnames = []
         for col in peak_data.columns:
             if 'area:' in col:
                 colname = False
-                for name in sample_names:
-                    if colname is False and name.lower() in col:
+                for name in self.sample_names.keys():
+                    if colname is False and name in col:
                         colname = self.sample_names[name]
                     elif colname is True and name.lower() in col:
                         raise Exception('Column "{}" maps to multiple names in sample description. Please correct.'.format(col))
@@ -99,12 +97,14 @@ class PeakData:
     def __run_all_peak_filters(self, peak_data, area_colnames, params):
         '''
         Function to run sequential filtering on peaks.
-        Currently, only has one filter, but more could be added.
         '''
         count_before = len(peak_data)
         peak_data = self.min_area_peak_filter(peak_data, area_colnames, self.params['min_area'])
+        N_min_area = count_before - len(peak_data)
+        peak_data = self.min_MW_peak_filter(peak_data, self.params['min_MW'])
+        N_min_MW = count_before - len(peak_data) - N_min_area
         count_after = len(peak_data)
-        print('Filtered {} peaks out. {} peaks left.'.format(count_before - count_after, count_after))
+        print('Filtered {} peaks out based on minimum peak area ({}) and minimum molecular weight ({}). {} peaks left.'.format(count_before - count_after, N_min_area, N_min_MW, count_after))
         return(peak_data)
 
     # Filter peaks with area smaller than the cutoff:
@@ -115,8 +115,51 @@ class PeakData:
         '''
         area_max = peak_data.loc[:, area_colnames].max(axis=1)
         mask = (area_max > min_area)
-        peak_data_filtered = peak_data[mask]
-        return(peak_data_filtered)
+        return(peak_data[mask])
+
+    # Filter peaks with molecular weight smaller than the cutoff:
+    def min_MW_peak_filter(self, peak_data, min_MW):
+        mask = peak_data['MW'] > min_MW
+        return(peak_data[mask])
+
+    # Remove peaks on the blacklist:
+    def remove_blacklist_peaks(self, blacklist, polarity='both'):
+        if polarity == 'pos' or 'both':
+            count_before = len(self.peak_data_pos)
+            MW = self.peak_data_pos.loc[:, 'MW'].values
+            RT = self.peak_data_pos.loc[:, 'RT'].values
+            blacklist_mask = MW > 0 # dummy mask, all True
+            for peak in blacklist['pos']:
+                MW_i = blacklist['pos'][peak]['MW']
+                RT_i = blacklist['pos'][peak]['RT']
+                # Retention time criterium:
+                RT_diff_mask = self._np.abs(RT_i - RT) <= blacklist['pos'][peak]['RT_tol']
+                # Mass shift criterium:
+                MW_tol = MW_i * 1e-6 * blacklist['pos'][peak]['MW_ppm_tol']
+                MW_diff_mask = self._np.abs(MW_i - MW) <= MW_tol
+                blacklist_mask = blacklist_mask & ~(RT_diff_mask & MW_diff_mask)
+            self.peak_data_pos = self.peak_data_pos[blacklist_mask].reset_index(drop=True, inplace=False)
+            count_after = len(self.peak_data_pos)
+            print('Blacklist filter in positive polarity filtered {} peaks out. {} peaks left.'.format(count_before - count_after, count_after))
+
+        if polarity == 'neg' or 'both':
+            count_before = len(self.peak_data_neg)
+            MW = self.peak_data_neg.loc[:, 'MW'].values
+            RT = self.peak_data_neg.loc[:, 'RT'].values
+            blacklist_mask = MW > 0 # dummy mask, all True
+            for peak in blacklist['neg']:
+                MW_i = blacklist['neg'][peak]['MW']
+                RT_i = blacklist['neg'][peak]['RT']
+                # Retention time criterium:
+                RT_diff_mask = self._np.abs(RT_i - RT) <= blacklist['neg'][peak]['RT_tol']
+                # Mass shift criterium:
+                MW_tol = MW_i * 1e-6 * blacklist['neg'][peak]['MW_ppm_tol']
+                MW_diff_mask = self._np.abs(MW_i - MW) <= MW_tol
+                blacklist_mask = blacklist_mask & ~(RT_diff_mask & MW_diff_mask)
+            self.peak_data_neg = self.peak_data_neg[blacklist_mask].reset_index(drop=True, inplace=False)
+            count_after = len(self.peak_data_neg)
+            print('Blacklist filter in negative polarity filtered {} peaks out. {} peaks left.'.format(count_before - count_after, count_after))
+
 
     # Find peak pairs according to polarity:
     def find_pairs(self, polarity):
@@ -283,19 +326,60 @@ class PeakData:
 
         writer.close()
 
+def make_lowercase_dict(obj):
+    '''
+    Recursive lowercase key/values in dictionary. See:
+    https://stackoverflow.com/questions/823030/elegant-pythonic-solution-for-forcing-all-keys-and-values-to-lower-case-in-nest
+    '''
+    try:
+        basestring
+    except NameError:
+        basestring = (str, bytes)
 
-def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, label_str, params):
-    label_df = pd.read_csv(known_fnam, sep='\t')
-    compounds = sorted(list(set(label_df['Name'].values)))
-    data_idx = [c+'_'+i for c in compounds for i in label_str]
-    data_idx = [n + "_" + f for n, f in zip(label_df['Name'], label_df['Label'])]
-    perc_lab = pd.DataFrame(columns=area_colnames, index=data_idx)
-    for compound in compounds:
-        dp_df = label_df[label_df['Name'] == compound]
+    if hasattr(obj, 'items'):
+        # dictionary
+        ret = dict()
+        for k, v in obj.items():
+            ret[make_lowercase_dict(k)] = make_lowercase_dict(v)
+        return(ret)
+    elif isinstance(obj, basestring):
+        # string
+        return obj.lower()
+    elif hasattr(obj, '__iter__'):
+        # list (or the like)
+        ret = list()
+        for item in obj:
+            ret.append(make_lowercase_dict(item))
+        return(ret)
+    else:
+        # anything else
+        return(obj)
+
+
+def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, elements_fnam, label_str, params):
+    '''
+    Search for known peak pairs and calculate statistics
+    to help adjust filtering parameters.
+    '''
+    df_known = pd.read_csv(known_fnam, sep='\t')
+    # Convert the "Formula" column to an exact mass:
+    symbol2mass, isotope2mass = read_mass_table(elements_fnam)
+    df_known['Mass'] = [formula2mass(symbol2mass, isotope2mass, f) for f in df_known['Formula']]
+    known_compounds = sorted(list(set(df_known['Name'].values)))
+    known_idx = [n + ' ({})'.format(f) for n, f in zip(df_known['Name'], df_known['Label'])]
+    perc_lab = pd.DataFrame(columns=area_colnames, index=known_idx)
+
+    for compound in known_compounds:
+        dp_df = df_known[df_known['Name'] == compound]
         area = {label_str[0]:[0], label_str[1]:[0]}
 
         for index, row in dp_df.iterrows():
-            mask = df_filter(peak_data, area_colnames, row['RT'], row['Mass'], params)
+            mass_error = params['MW_shift_ppm_tol'] * row['Mass'] * 1e-6
+            RT_mask = ((row['RT'] + params['RT_tol']) > peak_data['RT']) & ((row['RT'] - params['RT_tol']) < peak_data['RT'])
+            MW_mask = ((row['Mass'] + mass_error) > peak_data['MW']) & ((row['Mass'] - mass_error) < peak_data['MW'])
+            mask = RT_mask & MW_mask
+            mask_area_max = peak_data[area_colnames].sum(1) == peak_data[mask][area_colnames].sum(1).max()
+            mask = mask & mask_area_max
             if sum(mask) == 1:
                 area[row['Label']] = peak_data[mask][area_colnames].values[0]
 
@@ -304,28 +388,16 @@ def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, label_str,
             perc_m = area[label_str[0]] / area_sum
             perc_m4 = area[label_str[1]] / area_sum
 
-            idx = compound+'_'+label_str[0]
+            idx = compound + ' ({})'.format(label_str[0])
             perc_lab.loc[idx] = perc_m
 
-            idx = compound+'_'+label_str[1]
+            idx = compound + ' ({})'.format(label_str[1])
             perc_lab.loc[idx] = perc_m4
 
-    #print(perc_lab)
     x_labeled = perc_lab.loc[:, perc_lab.columns.isin((labeled_columns))].dropna().astype('float64')
     desc = x_labeled.T.describe(include='all')
 
     return(desc)
-
-
-def df_filter(df, area_colnames, RT, Mass, params):
-    Mass_error = params['MW_shift_ppm_tol'] * Mass * 1e-6
-    RT_mask = ((RT + params['RT_tol']) > df['RT']) & ((RT - params['RT_tol']) < df['RT'])
-    MW_mask = ((Mass + Mass_error) > df['MW']) & ((Mass - Mass_error) < df['MW'])
-    mask = RT_mask & MW_mask
-    mask_area_max = df[area_colnames].sum(1) == df[mask][area_colnames].sum(1).max()
-    mask = mask & mask_area_max
-
-    return(mask)
 
 
 def write_filterset(filter_data, filename):
@@ -400,4 +472,102 @@ def write_filterset(filter_data, filename):
     full_entry = header_str + '\n\n' + tail_str
     with open(filename, 'w') as fh:
         print(full_entry, file=fh)
+
+def isotopes2mass_shift(isotope_str, elements_fnam):
+    '''
+    Convert an isotope string to a mass shift.
+    E.g. "[13]C3 [15]N" will return the mass shift from 3x 13C carbon and 1x 15N nitrogen.
+    '''
+    # Read exact mass table:
+    symbol2mass, isotope2mass = read_mass_table(elements_fnam)
+    labelled_mass = formula2mass(symbol2mass, isotope2mass, isotope_str)
+    
+    isotope_str_unlabelled = list()
+    for element in isotope_str.split():
+        if '[' == element[0]:
+            end = element.index(']')
+            element = element[(end+1):]
+        isotope_str_unlabelled.append(element)
+    unlabelled_mass = formula2mass(symbol2mass, isotope2mass, ' '.join(isotope_str_unlabelled))
+    
+    return(labelled_mass - unlabelled_mass)
+
+def formula2mass(symbol2mass, isotope2mass, formula):
+    '''
+    Given a whitespace separated chemical formula, calculate the exact mass.
+    Isotopes deviating from the naturally most abundant are indicated by 
+    their nominal (integer) mass enclodes by brackets.
+    E.g. 13C labelled glucose is: [13]C6 H12 O6 
+    A mix of labelled and unlabelled is written separated e.g.
+    glucose with half of carbons labelled is: C3 [13]C3 H12 O6 
+    '''
+    total_mass = 0
+    for element in formula.split():
+        for symbol in symbol2mass.keys():
+            if symbol in element and '[' != element[0]:
+                split_element = element.split(symbol)
+                if split_element[1] != '':
+                    N = split_element[1]
+                else:
+                    N = 1
+                total_mass += float(N) * symbol2mass[symbol]['Mass']
+
+            elif symbol in element and '[' == element[0]:
+                end = element.index(']')
+                isotope = element[1:end]
+                element = element[(end+1):]
+
+                split_element = element.split(symbol)
+                if split_element[1] != '':
+                    N = split_element[1]
+                else:
+                    N = 1
+                total_mass += float(N) * isotope2mass[symbol][isotope]
+
+    return(total_mass)
+
+def read_mass_table(filename):
+    import pandas as pd
+    # Read the exact mass of each element and the isotopes:
+    mass_df = pd.read_csv(filename, sep='\t', comment='#')
+
+    # Convert this into dictionaries usefull for
+    # converting a chemical formula into a mass:
+    symbol2mass = dict()
+    isotope2mass = dict()
+    for s, a, m in zip(mass_df['Symbol'], mass_df['Abundance'], mass_df['Mass']):
+        ei = s.index('(')
+        ss = s[:ei]
+
+        if ss in symbol2mass and symbol2mass[ss]['Abundance'] < a:
+            symbol2mass[ss]['Mass'] = m
+            symbol2mass[ss]['Abundance'] = a
+        elif ss not in symbol2mass:
+            symbol2mass[ss] = {
+                'Mass': m,
+                'Abundance': a        
+            }
+        N = str(round(m))
+        if ss not in isotope2mass:
+            isotope2mass[ss] = {N: m}
+        else:
+            isotope2mass[ss][N] = m
+
+    return(symbol2mass, isotope2mass)
+
+def make_blacklist_dict(blacklist_fnam):
+    blacklist_df = pd.read_csv(blacklist_fnam, sep='\t')
+    blacklist_dict = {'pos': {}, 'neg': {}}
+    blacklist_cols = blacklist_df.columns
+    for i in range(len(blacklist_df)):
+        peak_id = (blacklist_df.loc[i, 'MW'], blacklist_df.loc[i, 'RT'])
+        assert(peak_id not in blacklist_dict)
+        if blacklist_df.loc[i, 'Polarity'] == 'pos':
+            blacklist_dict['pos'][peak_id] = {col: blacklist_df.loc[i, col] for col in blacklist_cols}
+        elif blacklist_df.loc[i, 'Polarity'] == 'neg':
+            blacklist_dict['neg'][peak_id] = {col: blacklist_df.loc[i, col] for col in blacklist_cols}
+        else:
+            raise Exception('Polarity "{}" not recognized'.format(blacklist_df.loc[i, 'Polarity']))
+    return(blacklist_dict)
+
 
