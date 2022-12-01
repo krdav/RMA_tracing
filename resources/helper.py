@@ -23,12 +23,12 @@ class PeakData:
 
         # For each label make a dictionary entry with all the
         # tables related to the peak pair from that label:
-        self.labels = list(sample_label.keys())
+        self.labels = list(self.sample_label.keys())
         self.label_peaks = dict()
         # Iterate over labels:
         for label in sorted(self.labels):
             self.label_peaks[label] = dict()
-            self.label_peaks[label]['label_colnames'] = sample_label[label]
+            self.label_peaks[label]['label_colnames'] = self.sample_label[label]
             for polarity in ['pos', 'neg']:
                 self.label_peaks[label][polarity] = dict()
                 self.label_peaks[label][polarity]['peak_pair_area_parent'] = None # Parent peak area
@@ -257,6 +257,7 @@ class PeakData:
             cols_with_label = area_ratio_mask.columns.isin((self.label_peaks[label]['label_colnames']))
             if sum(area_ratio_mask.loc[i, cols_with_label]) < self.min_label:
                 area_ratio_drop.append(i)
+
         peak_pair_area_parent = peak_pair_area_parent.drop(labels=area_ratio_drop, axis=0).reset_index(drop=True, inplace=False)
         peak_pair_area_heavy = peak_pair_area_heavy.drop(labels=area_ratio_drop, axis=0).reset_index(drop=True, inplace=False)
         peak_pair_labelp = peak_pair_labelp.drop(labels=area_ratio_drop, axis=0).reset_index(drop=True, inplace=False)
@@ -356,15 +357,19 @@ def make_lowercase_dict(obj):
         return(obj)
 
 
-def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, elements_fnam, label_str, params):
+def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, formula2mass, label_str, params):
     '''
     Search for known peak pairs and calculate statistics
     to help adjust filtering parameters.
     '''
     df_known = pd.read_csv(known_fnam, sep='\t')
     # Convert the "Formula" column to an exact mass:
-    symbol2mass, isotope2mass = read_mass_table(elements_fnam)
-    df_known['Mass'] = [formula2mass(symbol2mass, isotope2mass, f) for f in df_known['Formula']]
+
+#    symbol2mass, isotope2mass = read_mass_table(elements_fnam)
+#    df_known['Mass'] = [formula2mass(symbol2mass, isotope2mass, f) for f in df_known['Formula']]
+    df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
+
+
     known_compounds = sorted(list(set(df_known['Name'].values)))
     known_idx = [n + ' ({})'.format(f) for n, f in zip(df_known['Name'], df_known['Label'])]
     perc_lab = pd.DataFrame(columns=area_colnames, index=known_idx)
@@ -473,87 +478,163 @@ def write_filterset(filter_data, filename):
     with open(filename, 'w') as fh:
         print(full_entry, file=fh)
 
-def isotopes2mass_shift(isotope_str, elements_fnam):
-    '''
-    Convert an isotope string to a mass shift.
-    E.g. "[13]C3 [15]N" will return the mass shift from 3x 13C carbon and 1x 15N nitrogen.
-    '''
-    # Read exact mass table:
-    symbol2mass, isotope2mass = read_mass_table(elements_fnam)
-    labelled_mass = formula2mass(symbol2mass, isotope2mass, isotope_str)
-    
-    isotope_str_unlabelled = list()
-    for element in isotope_str.split():
-        if '[' == element[0]:
-            end = element.index(']')
-            element = element[(end+1):]
-        isotope_str_unlabelled.append(element)
-    unlabelled_mass = formula2mass(symbol2mass, isotope2mass, ' '.join(isotope_str_unlabelled))
-    
-    return(labelled_mass - unlabelled_mass)
 
-def formula2mass(symbol2mass, isotope2mass, formula):
-    '''
-    Given a whitespace separated chemical formula, calculate the exact mass.
-    Isotopes deviating from the naturally most abundant are indicated by 
-    their nominal (integer) mass enclodes by brackets.
-    E.g. 13C labelled glucose is: [13]C6 H12 O6 
-    A mix of labelled and unlabelled is written separated e.g.
-    glucose with half of carbons labelled is: C3 [13]C3 H12 O6 
-    '''
-    total_mass = 0
-    for element in formula.split():
-        for symbol in symbol2mass.keys():
-            if symbol in element and '[' != element[0]:
-                split_element = element.split(symbol)
-                if split_element[1] != '':
-                    N = split_element[1]
-                else:
-                    N = 1
-                total_mass += float(N) * symbol2mass[symbol]['Mass']
+class Isotopes:
+    import pandas as _pd
+    import numpy as _np
+    import random as _rd
+    import copy as _cp
 
-            elif symbol in element and '[' == element[0]:
+    def __init__(self, IUPAC_atomic_masses, IUPAC_atomic_abundances):
+        self.IUPAC_atomic_masses = IUPAC_atomic_masses
+        self.IUPAC_atomic_abundances = IUPAC_atomic_abundances
+        self.iupac_table = None
+        self.isotope_info = None
+        self.update_isotope_data()
+
+    def isotopes2mass_shift(self, isotope_str):
+        '''
+        Convert an isotope string to a mass shift.
+        E.g. "[13]C3 [15]N" will return the mass shift from 3x 13C carbon and 1x 15N nitrogen.
+        '''
+        labelled_mass = self.formula2mass(isotope_str)
+        isotope_str_unlabelled = list()
+        for element in isotope_str.split():
+            if '[' == element[0]:
                 end = element.index(']')
-                isotope = element[1:end]
                 element = element[(end+1):]
+            isotope_str_unlabelled.append(element)
+        unlabelled_mass = self.formula2mass(' '.join(isotope_str_unlabelled))
 
-                split_element = element.split(symbol)
-                if split_element[1] != '':
-                    N = split_element[1]
-                else:
-                    N = 1
-                total_mass += float(N) * isotope2mass[symbol][isotope]
+        return(labelled_mass - unlabelled_mass)
 
-    return(total_mass)
+    def formula2mass(self, formula):
+        '''
+        Given a whitespace separated chemical formula, calculate the exact mass.
+        Isotopes deviating from the naturally most abundant are indicated by 
+        their nominal (integer) mass enclodes by brackets.
+        E.g. 13C labelled glucose is: [13]C6 H12 O6 
+        A mix of labelled and unlabelled is written separated e.g.
+        glucose with half of carbons labelled is: C3 [13]C3 H12 O6 
+        '''
+        total_mass = 0
+        for element in formula.split():
+            symbol_not_found = True
+            for symbol in self.isotope_info.keys():
+                # No bracket means this is the most abundant isotope:
+                if symbol in element and '[' != element[0]:
+                    symbol_not_found = False
+                    split_element = element.split(symbol)
+                    if split_element[1] != '':
+                        N = split_element[1]
+                    else:
+                        N = 1
+                    total_mass += float(N) * self.isotope_info[symbol]['most_abundant']['mass']
 
-def read_mass_table(filename):
-    import pandas as pd
-    # Read the exact mass of each element and the isotopes:
-    mass_df = pd.read_csv(filename, sep='\t', comment='#')
+                # Bracket means we need to parse the isotope nominal mass:
+                elif symbol in element and '[' == element[0]:
+                    symbol_not_found = False
+                    end = element.index(']')
+                    nominal_mass = int(element[1:end])
+                    element = element[(end+1):]
 
-    # Convert this into dictionaries usefull for
-    # converting a chemical formula into a mass:
-    symbol2mass = dict()
-    isotope2mass = dict()
-    for s, a, m in zip(mass_df['Symbol'], mass_df['Abundance'], mass_df['Mass']):
-        ei = s.index('(')
-        ss = s[:ei]
+                    split_element = element.split(symbol)
+                    if split_element[1] != '':
+                        N = split_element[1]
+                    else:
+                        N = 1
+                    total_mass += float(N) * self.isotope_info[symbol][nominal_mass]['mass']
+            if symbol_not_found:
+                raise Exception('Did not find an element symbol in this part of the input formula: {}\nUse standard element abbreviations (first letter uppercase, second letter lower) and separate each element by a space.'.format(element))
+                
+        return(total_mass)
 
-        if ss in symbol2mass and symbol2mass[ss]['Abundance'] < a:
-            symbol2mass[ss]['Mass'] = m
-            symbol2mass[ss]['Abundance'] = a
-        elif ss not in symbol2mass:
-            symbol2mass[ss] = {
-                'Mass': m,
-                'Abundance': a        
-            }
-        N = str(round(m))
-        if ss not in isotope2mass:
-            isotope2mass[ss] = {N: m}
-        else:
-            isotope2mass[ss][N] = m
+    def update_isotope_data(self):
+        self.iupac_table, self.isotope_info = self.__read_iupac(self.IUPAC_atomic_masses, self.IUPAC_atomic_abundances)
 
-    return(symbol2mass, isotope2mass)
+    def __read_iupac(self, IUPAC_atomic_masses, IUPAC_atomic_abundances):
+        '''
+        Parse csv and html tables from IUPAC:
+        https://iupac.org/isotopes-matter/
+        Containing information about atomic masses and
+        isotopic abundance.
+        Then return this as a dataframe and a dictionary.
+        '''
+        import warnings
+        # The csv file with atomic masses contains
+        # html links with the year when the measurement was made
+        # therefore make a parser to extract this year:
+        from html.parser import HTMLParser
+        class MyHTMLParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.data_extract = list()
+            def handle_data(self, data):
+                self.data_extract.append(int(data))
+        html_parser = MyHTMLParser()
+        
+        # Read the IUPAC masses into a dataframe:
+        iupac_masses = self._pd.read_csv(IUPAC_atomic_masses, sep=',', comment='#')
+        # Extract the year of measurement:
+        for html_link in iupac_masses['Year/link'].values:
+            html_parser.feed(html_link)
+        iupac_masses['year'] = html_parser.data_extract
+        iupac_masses = iupac_masses.drop(['Year/link', 'uncertainty'], axis=1)
+        # Extract data row from the most recent year of measurement,
+        # then sort by mass (smallest to largest):
+        iupac_masses_agg = iupac_masses.iloc[iupac_masses.groupby('nuclide').agg({'year': 'idxmax'}).year].sort_values(by=['mass']).reset_index(drop=True)
+        iupac_masses_agg = iupac_masses_agg.drop(['year'], axis=1)
+
+        # Read the IUPAC abundances into a dataframe:
+        iupac_abundances = self._pd.read_html(IUPAC_atomic_abundances, encoding='utf-8')[0]
+        Z_number = iupac_abundances['Z'].str.isnumeric().fillna(False)
+        iupac_abundances = iupac_abundances[Z_number]
+        iupac_abundances['nuclide'] = [A+E for A, E in zip(iupac_abundances['A'].values, iupac_abundances['E'].values)]
+
+        # Abundance data comes as either:
+        # 1) a range, 2) a point estimate, or 3) no info
+        # Calculate a point estimate for all, dump the ones with no info:
+        mean_abundances = list()
+        for ric in iupac_abundances['Representative isotopic composition'].values:
+            # Remove whitespace:
+            ric = ''.join(ric.split())
+            try:
+                # Ignore warnings:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message="'float' object is not callable; perhaps you missed a comma?")
+                    ric_range = eval(ric)
+                    ric_point_est = sum(ric_range)/2
+            except TypeError:
+                ric_point_est = float(ric.split('(')[0])
+            except SyntaxError:
+                ric_point_est = np.nan
+            mean_abundances.append(ric_point_est)
+        iupac_abundances['abundance'] = mean_abundances
+        abs_mask = ~iupac_abundances['abundance'].isna()
+        iupac_abundances = iupac_abundances[abs_mask]
+        iupac_abundances = iupac_abundances.drop(['Notes', 'Representative isotopic composition'], axis=1)
+        
+        # Merge masses with abundances:
+        iupac_isotopes = iupac_abundances.merge(iupac_masses_agg, on='nuclide')
+        iupac_isotopes['A'] = [int(val) for val in iupac_isotopes['A'].values]
+        iupac_isotopes['Z'] = [int(val) for val in iupac_isotopes['Z'].values]
+
+        # Convert this into a dictionary usefull for
+        # converting a chemical formula into a mass:
+        isotope_info = dict()
+        for element, nominal_mass, mass, abundance in zip(iupac_isotopes['E'].values, iupac_isotopes['A'].values, iupac_isotopes['mass'].values, iupac_isotopes['abundance'].values):
+            if element not in isotope_info:
+                isotope_info[element] = {nominal_mass: {'mass': mass, 'abundance': abundance}}
+            else:
+                isotope_info[element][nominal_mass] = {'mass': mass, 'abundance': abundance}
+
+        # Insert a special key for the most abundant isotope:
+        for element in isotope_info.keys():
+            abundance_sorter = [(isotope_info[element][nominal_mass]['abundance'], nominal_mass) for nominal_mass in isotope_info[element].keys()]
+            most_abundant = sorted(abundance_sorter, key=lambda x: x[0], reverse=True)
+            isotope_info[element]['most_abundant'] = isotope_info[element][most_abundant[0][1]]  
+
+        return(iupac_isotopes, isotope_info)
 
 def make_blacklist_dict(blacklist_fnam):
     blacklist_df = pd.read_csv(blacklist_fnam, sep='\t')

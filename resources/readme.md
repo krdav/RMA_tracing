@@ -30,10 +30,23 @@ A blacklist is stored as `blacklist.tab`
 
 
 
+A list of compounds known to be labelled is stored as `known_cys_labeled.tab` and `known_gln_labeled.tab`
+
+
+| Name | Label | Formula                         | RT  |
+|------|-------|---------------------------------|-----|
+| GSH  | m     | C10 H17 N3 O6 S                 | 9.8 |
+|------|-------|---------------------------------|-----|
+| GSH  | m+4   | C7 \[13\]C3 H17 N2 \[15\]N O6 S | 9.8 |
 
 
 
+## List of adducts and adduct definitions
 
+
+List of adducts store as `adducts.tab`
+
+Adduct definition stored in JSON format as `adduct_def.json`
 
 
 
