@@ -478,7 +478,6 @@ def write_filterset(filter_data, filename):
     with open(filename, 'w') as fh:
         print(full_entry, file=fh)
 
-
 class Isotopes:
     import pandas as _pd
     import numpy as _np
@@ -486,11 +485,98 @@ class Isotopes:
     import copy as _cp
 
     def __init__(self, IUPAC_atomic_masses, IUPAC_atomic_abundances):
+        # Initiate by parsing IUPAC information:
         self.IUPAC_atomic_masses = IUPAC_atomic_masses
         self.IUPAC_atomic_abundances = IUPAC_atomic_abundances
         self.iupac_table = None
         self.isotope_info = None
-        self.update_isotope_data()
+        self.update_isotope_data() # Fills the iupac_table and isotope_info variable above
+        # Make dictionary of isotope abundances 
+        self.isotope_abundances = self.__abundance_dict()
+        self.relevant_isotopes = ['[2]H', '[13]C', '[15]N', '[17]O', '[18]O', '[33]S', '[34]S', '[36]S']
+        self.iso_set = None
+        
+        
+
+    def find_iso_set(self, iso_names=None, min_abs=1e-7):
+        '''Function wrapper, to avoid global variables.'''
+        if iso_names is None:
+            iso_names = self.relevant_isotopes
+        iso_set = dict()
+        def new_iso(iso_set, combo=()):
+            '''
+            Recursive function to find all isotope combinations
+            below a certain minimum "expected abundance", based on
+            input abundance.
+            The "expected abundance" should be understood simply as
+            the product of the isotope abundances for a given combination
+            of isotopes e.g. ('13C', '13C', '15N') has an expected abundance
+            of ~4.477e-07 based on natural isotope abundance.
+            Be aware that this is __not__ the same as saying that 13C2 15N of
+            a molecule has abundance 4.477e-07 of its parent. This depends
+            on the number of carbon and nitrogen in the molecule which
+            is unknown a priori.
+            Is the formula known, the true expected abundance can be
+            calculated using the binomial pmf:
+            https://en.wikipedia.org/wiki/Binomial_distribution#Probability_mass_function
+            '''
+            for iso_name in iso_names:
+                combo += (iso_name, )
+
+                # Already in set:
+                if combo in iso_set:
+                    combo = combo[0:-1]
+
+                # First element:
+                elif len(combo) == 1 and self.isotope_abundances[iso_name] >= min_abs:
+                    iso_set[combo] = self.isotope_abundances[iso_name]
+                    new_iso(iso_set, combo=combo) # Recursion, add more 
+
+                # Move to next isotope:
+                elif len(combo) == 1 and self.isotope_abundances[iso_name] < min_abs:
+                    combo = combo[0:-1]
+
+                # Additional elements:
+                elif combo not in iso_set and (iso_set[combo[0:-1]] * self.isotope_abundances[iso_name]) >= min_abs:
+                    iso_set[combo] = iso_set[combo[0:-1]] * self.isotope_abundances[iso_name]
+                    new_iso(iso_set, combo=combo) # Recursion, add more 
+
+                # Move to next isotope:
+                elif combo not in iso_set and (iso_set[combo[0:-1]] * self.isotope_abundances[iso_name]) < min_abs:
+                    combo = combo[0:-1]
+
+                # All outcomes have been expanded with "elif"
+                # to increase clarity, fallback on "else" should not happen:
+                else:
+                    assert(False) # should not happen
+
+            if len(combo) > 0:
+                new_iso(iso_set, combo=combo[0:-1]) # Peel off one layer, then add more
+            return(iso_set)
+
+        # Run recursion:
+        iso_set = new_iso(iso_set, combo=())
+        # Remove duplicates:
+        iso_set_sorted = dict()
+        for combo in iso_set.keys():
+            sorted_combo = tuple(sorted(combo))
+            iso_set_sorted[sorted_combo] = iso_set[combo]
+        
+        # Add mass shift to dictionary:
+        for combo, abundance in iso_set_sorted.items():
+            iso_set_sorted[combo] = {'abundance': abundance, 'mass_shift': self.isotopes2mass_shift(' '.join(combo))}
+        
+        self.iso_set = iso_set_sorted
+        return(iso_set_sorted)
+
+    def __abundance_dict(self):
+        abundances = dict()
+        for element in self.isotope_info.keys():
+            for nominal_mass in self.isotope_info[element].keys():
+                if nominal_mass != 'most_abundant':
+                    nuclide = '[{}]{}'.format(nominal_mass, element)
+                    abundances[nuclide] = self.isotope_info[element][nominal_mass]['abundance']
+        return(abundances)
 
     def isotopes2mass_shift(self, isotope_str):
         '''
@@ -525,6 +611,9 @@ class Isotopes:
                 if symbol in element and '[' != element[0]:
                     symbol_not_found = False
                     split_element = element.split(symbol)
+                    if split_element[0] != '':
+                        raise Exception('Wrong formatting of formula string: {}.\nEither start with bracket and the nominal mass, or an element abbreviation.'.format(element))
+                        
                     if split_element[1] != '':
                         N = split_element[1]
                     else:
@@ -534,16 +623,21 @@ class Isotopes:
                 # Bracket means we need to parse the isotope nominal mass:
                 elif symbol in element and '[' == element[0]:
                     symbol_not_found = False
-                    end = element.index(']')
-                    nominal_mass = int(element[1:end])
-                    element = element[(end+1):]
-
-                    split_element = element.split(symbol)
+                    try:
+                        end = element.index(']')
+                        nominal_mass = int(element[1:end])
+                        split_element = element[(end+1):].split(symbol)
+                    except:
+                         raise Exception('Could not read the input formula: {}\nPlease check formating.'.format(element))
                     if split_element[1] != '':
                         N = split_element[1]
                     else:
                         N = 1
-                    total_mass += float(N) * self.isotope_info[symbol][nominal_mass]['mass']
+                    try:
+                        total_mass += float(N) * self.isotope_info[symbol][nominal_mass]['mass']
+                    except KeyError:
+                        raise Exception('Could not find the nominal mass of {} for this element ({}), please check the input formula: {}'.format(nominal_mass, symbol, element))
+
             if symbol_not_found:
                 raise Exception('Did not find an element symbol in this part of the input formula: {}\nUse standard element abbreviations (first letter uppercase, second letter lower) and separate each element by a space.'.format(element))
                 
