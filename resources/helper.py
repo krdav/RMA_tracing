@@ -24,18 +24,18 @@ class PeakData:
         # For each label make a dictionary entry with all the
         # tables related to the peak pair from that label:
         self.labels = list(self.sample_label.keys())
-        self.label_peaks = dict()
+        self.label_pairs = dict()
         # Iterate over labels:
         for label in sorted(self.labels):
-            self.label_peaks[label] = dict()
-            self.label_peaks[label]['label_colnames'] = self.sample_label[label]
+            self.label_pairs[label] = dict()
+            self.label_pairs[label]['label_colnames'] = self.sample_label[label]
             for polarity in ['pos', 'neg']:
-                self.label_peaks[label][polarity] = dict()
-                self.label_peaks[label][polarity]['peak_pair_area_parent'] = None # Parent peak area
-                self.label_peaks[label][polarity]['peak_pair_area_heavy'] = None # Labelled peak area
-                self.label_peaks[label][polarity]['peak_pair_labelp'] = None # Labelling percent
-                self.label_peaks[label][polarity]['area_ratio_mask'] = None # Filter based on self.params e.g. mass different, retention time difference etc.
-                self.label_peaks[label][polarity]['peak_pair_corr'] = None # Matrix with accross sample correlation coefficients between peak areas
+                self.label_pairs[label][polarity] = dict()
+                self.label_pairs[label][polarity]['peak_pair_area_parent'] = None # Parent peak area
+                self.label_pairs[label][polarity]['peak_pair_area_heavy'] = None # Labelled peak area
+                self.label_pairs[label][polarity]['peak_pair_labelp'] = None # Labelling percent
+                self.label_pairs[label][polarity]['area_ratio_mask'] = None # Filter based on self.params e.g. mass different, retention time difference etc.
+                self.label_pairs[label][polarity]['peak_pair_corr'] = None # Matrix with accross sample correlation coefficients between peak areas
 
     # Read peak data according to polarity:
     def read_peaks(self, datafile, polarity):
@@ -87,6 +87,7 @@ class PeakData:
             self.area_colnames_neg = area_colnames
         
         # Filter peak dataframe:
+        print('Running peak filtering for polarity: {}'.format(polarity))
         peak_data = self.__run_all_peak_filters(peak_data, area_colnames, self.params)
         peak_data = peak_data.sort_values(by='MW', ascending=True)
         peak_data.reset_index(drop=True, inplace=True)
@@ -103,8 +104,14 @@ class PeakData:
         N_min_area = count_before - len(peak_data)
         peak_data = self.min_MW_peak_filter(peak_data, self.params['min_MW'])
         N_min_MW = count_before - len(peak_data) - N_min_area
+        peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol'], self.params['merge_corr_tol'])
+        N_merge = count_before - len(peak_data) - N_min_area - N_min_MW
         count_after = len(peak_data)
-        print('Filtered {} peaks out based on minimum peak area ({}) and minimum molecular weight ({}). {} peaks left.'.format(count_before - count_after, N_min_area, N_min_MW, count_after))
+        print('Filtered {} peaks out based on.\n\
+Minimum peak area: {}\n\
+Minimum molecular weight: {}\n\
+Merged closely related peaks: {}\n\
+{} peaks left.\n'.format(count_before - count_after, N_min_area, N_min_MW, N_merge, count_after))
         return(peak_data)
 
     # Filter peaks with area smaller than the cutoff:
@@ -121,6 +128,62 @@ class PeakData:
     def min_MW_peak_filter(self, peak_data, min_MW):
         mask = peak_data['MW'] > min_MW
         return(peak_data[mask])
+
+    # Merge peaks with small deviation in m/z.
+    def merge_peak_filter(self, peak_data, area_colnames, ppm_tol, RT_tol, corr_tol):
+        '''
+        This filter is merging peaks that are likely from the same compound.
+        It works by searching for peaks that fulfill two criteria:
+        1) Being within a maximum mass difference (defined by a ppm value).
+        2) Being within a maximum retention time difference,
+        OR having a minimum correlation coefficient between the two peak areas.
+
+        Peaks are merged by taken the sum of the peak areas and keeping
+        the molecular mass and retention time from the peak with the 
+        largest sum of peak areas.
+        '''
+        MW = peak_data['MW'].values
+        RT = peak_data['RT'].values
+        area = peak_data.loc[:, area_colnames].values.astype(float)
+
+        # Find peaks that fulfill the two criteria:
+        merge_col = list()
+        for i in range(len(peak_data)):
+            # Retention time criterium:
+            RT_diff_mask = np.abs(RT[i] - RT) <= RT_tol
+            # Mass shift criterium:
+            MW_tol = MW[i] * 1e-6 * ppm_tol
+            MW_diff_mask = np.abs(MW[i] - MW) <= MW_tol
+            # Peak area correlation criterium:
+            corr_mask = vcorrcoef(area, area[i]) > corr_tol
+
+            # Make a mask and store peak pairs:
+            mask = (MW_diff_mask) & (RT_diff_mask | corr_mask)
+            idx_tup = tuple(sorted(np.where(mask)[0]))
+            merge_col.append(idx_tup)
+
+        # Add a "merge" column and split the dataframe
+        # into peak areas and other data: 
+        peak_data['merge'] = merge_col
+        peak_data_area = peak_data.loc[:, ['merge'] + area_colnames].copy()
+        peak_data_rest = peak_data.loc[:, ~peak_data.columns.isin(area_colnames)].copy()
+        # Add the sum of area for each peak, as a way of sorting:
+        peak_data_rest['area_sum'] = peak_data_area.sum(axis=1).values
+            
+        # Group dataframes by the merge column.
+        # Take the sum of the areas to the merged:
+        peak_data_area_grouped = peak_data_area.groupby('merge').sum().reset_index()
+        # Extract the molecular weight and retention time
+        # of the peak with the largest sum of peak areas:
+        largest_area_sum_mask = peak_data_rest.groupby(['merge'])['area_sum'].transform(max) == peak_data_rest['area_sum']
+        peak_data_rest_grouped = peak_data_rest[largest_area_sum_mask].copy()
+
+        # Merge back the area dataframe with the rest
+        # and remove ancillary columns:
+        peak_data_merged = peak_data_rest_grouped.merge(peak_data_area_grouped)
+        peak_data_merged.drop(labels=['merge', 'area_sum'], axis=1)
+
+        return(peak_data_merged)
 
     # Remove peaks on the blacklist:
     def remove_blacklist_peaks(self, blacklist, polarity='both'):
@@ -165,9 +228,9 @@ class PeakData:
     def find_pairs(self, polarity):
         for label in sorted(self.labels):            
             if polarity == 'pos':
-                self.label_peaks[label]['pos']['peak_pair_area_parent'], self.label_peaks[label]['pos']['peak_pair_area_heavy'], self.label_peaks[label]['pos']['peak_pair_labelp'], self.label_peaks[label]['pos']['area_ratio_mask'], self.label_peaks[label]['pos']['peak_pair_corr'] = self.__find_peak_pairs_per_label(self.peak_data_pos, self.area_colnames_pos, polarity, label)
+                self.label_pairs[label]['pos']['peak_pair_area_parent'], self.label_pairs[label]['pos']['peak_pair_area_heavy'], self.label_pairs[label]['pos']['peak_pair_labelp'], self.label_pairs[label]['pos']['area_ratio_mask'], self.label_pairs[label]['pos']['peak_pair_corr'] = self.__find_peak_pairs_per_label(self.peak_data_pos, self.area_colnames_pos, polarity, label)
             elif polarity == 'neg':
-                self.label_peaks[label]['neg']['peak_pair_area_parent'], self.label_peaks[label]['neg']['peak_pair_area_heavy'], self.label_peaks[label]['neg']['peak_pair_labelp'], self.label_peaks[label]['neg']['area_ratio_mask'], self.label_peaks[label]['neg']['peak_pair_corr'] = self.__find_peak_pairs_per_label(self.peak_data_neg, self.area_colnames_neg, polarity, label)
+                self.label_pairs[label]['neg']['peak_pair_area_parent'], self.label_pairs[label]['neg']['peak_pair_area_heavy'], self.label_pairs[label]['neg']['peak_pair_labelp'], self.label_pairs[label]['neg']['area_ratio_mask'], self.label_pairs[label]['neg']['peak_pair_corr'] = self.__find_peak_pairs_per_label(self.peak_data_neg, self.area_colnames_neg, polarity, label)
             else:
                 raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
@@ -254,7 +317,7 @@ class PeakData:
         # Find and drop rows with insufficient number of samples passing the area ratio criterium:
         area_ratio_drop = list()
         for i in range(len(peak_pair_area_parent)):
-            cols_with_label = area_ratio_mask.columns.isin((self.label_peaks[label]['label_colnames']))
+            cols_with_label = area_ratio_mask.columns.isin((self.label_pairs[label]['label_colnames']))
             if sum(area_ratio_mask.loc[i, cols_with_label]) < self.min_label:
                 area_ratio_drop.append(i)
 
@@ -285,37 +348,37 @@ class PeakData:
         pair_info_mask = ['pair_id', 'MW_parent', 'RT_parent', 'MW_heavy', 'RT_heavy',
                           'polarity', 'label', 'name']
         # Find the intersection based on parent MW and RT:
-        s_intersection = set([pi[0] for pi in self.label_peaks[labels[0]][polarity]['peak_pair_area_parent']['pair_id'].values])
+        s_intersection = set([pi[0] for pi in self.label_pairs[labels[0]][polarity]['peak_pair_area_parent']['pair_id'].values])
         for label in labels:
-            s = set([pi[0] for pi in self.label_peaks[label][polarity]['peak_pair_area_parent']['pair_id'].values])
+            s = set([pi[0] for pi in self.label_pairs[label][polarity]['peak_pair_area_parent']['pair_id'].values])
             s_intersection = s_intersection.intersection(s)
         
         # Update peak pair dataframe for the chosen labels:
         for label in labels:
-            row_mask = [pi[0] in s_intersection for pi in self.label_peaks[label][polarity]['peak_pair_area_parent']['pair_id'].values]
+            row_mask = [pi[0] in s_intersection for pi in self.label_pairs[label][polarity]['peak_pair_area_parent']['pair_id'].values]
             
-            self.label_peaks[label][polarity]['peak_pair_area_parent'] = self.label_peaks[label][polarity]['peak_pair_area_parent'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            self.label_peaks[label][polarity]['peak_pair_area_heavy'] = self.label_peaks[label][polarity]['peak_pair_area_heavy'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            self.label_peaks[label][polarity]['peak_pair_labelp'] = self.label_peaks[label][polarity]['peak_pair_labelp'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            self.label_peaks[label][polarity]['area_ratio_mask'] = self.label_peaks[label][polarity]['area_ratio_mask'].loc[row_mask, :].reset_index(drop=True, inplace=False)
+            self.label_pairs[label][polarity]['peak_pair_area_parent'] = self.label_pairs[label][polarity]['peak_pair_area_parent'].loc[row_mask, :].reset_index(drop=True, inplace=False)
+            self.label_pairs[label][polarity]['peak_pair_area_heavy'] = self.label_pairs[label][polarity]['peak_pair_area_heavy'].loc[row_mask, :].reset_index(drop=True, inplace=False)
+            self.label_pairs[label][polarity]['peak_pair_labelp'] = self.label_pairs[label][polarity]['peak_pair_labelp'].loc[row_mask, :].reset_index(drop=True, inplace=False)
+            self.label_pairs[label][polarity]['area_ratio_mask'] = self.label_pairs[label][polarity]['area_ratio_mask'].loc[row_mask, :].reset_index(drop=True, inplace=False)
             
             # Redo the dataframe with peak pair area correlations:
-            a = self.label_peaks[label][polarity]['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).loc[:, area_colnames]
+            a = self.label_pairs[label][polarity]['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).loc[:, area_colnames]
             a = a.astype(float)
             peak_pair_corr = a.T.corr().abs()
-            pair_info_df = self.label_peaks[label][polarity]['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).loc[:, pair_info_mask]
-            self.label_peaks[label][polarity]['peak_pair_corr'] = self._pd.concat([pair_info_df, peak_pair_corr], axis=1, sort=False)
+            pair_info_df = self.label_pairs[label][polarity]['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).loc[:, pair_info_mask]
+            self.label_pairs[label][polarity]['peak_pair_corr'] = self._pd.concat([pair_info_df, peak_pair_corr], axis=1, sort=False)
 
     # Write the peak pair tables as excel file:
     def write_pairs(self, filename, polarity):
         writer = self._pd.ExcelWriter('{}.xlsx'.format(filename))
         # Iterate over labels:
-        for label in sorted(self.label_peaks.keys()):
+        for label in sorted(self.label_pairs.keys()):
             # Assign variables according to polarity:
             if polarity == 'pos':
-                peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr = self.label_peaks[label]['pos']['peak_pair_area_parent'], self.label_peaks[label]['pos']['peak_pair_area_heavy'], self.label_peaks[label]['pos']['peak_pair_labelp'], self.label_peaks[label]['pos']['area_ratio_mask'], self.label_peaks[label]['pos']['peak_pair_corr']
+                peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr = self.label_pairs[label]['pos']['peak_pair_area_parent'], self.label_pairs[label]['pos']['peak_pair_area_heavy'], self.label_pairs[label]['pos']['peak_pair_labelp'], self.label_pairs[label]['pos']['area_ratio_mask'], self.label_pairs[label]['pos']['peak_pair_corr']
             elif polarity == 'neg':
-                peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr = self.label_peaks[label]['neg']['peak_pair_area_parent'], self.label_peaks[label]['neg']['peak_pair_area_heavy'], self.label_peaks[label]['neg']['peak_pair_labelp'], self.label_peaks[label]['neg']['area_ratio_mask'], self.label_peaks[label]['neg']['peak_pair_corr']
+                peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr = self.label_pairs[label]['neg']['peak_pair_area_parent'], self.label_pairs[label]['neg']['peak_pair_area_heavy'], self.label_pairs[label]['neg']['peak_pair_labelp'], self.label_pairs[label]['neg']['area_ratio_mask'], self.label_pairs[label]['neg']['peak_pair_corr']
             else:
                 raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
             # Write to file:
@@ -356,6 +419,17 @@ def make_lowercase_dict(obj):
         # anything else
         return(obj)
 
+def vcorrcoef(X, y):
+    '''
+    Numpy vectorized correlation coefficient.
+    See: https://waterprogramming.wordpress.com/2014/06/13/numpy-vectorized-correlation-coefficient/
+    '''
+    Xm = np.reshape(np.mean(X, axis=1), (X.shape[0], 1))
+    ym = np.mean(y)
+    r_num = np.sum((X-Xm) * (y-ym), axis=1)
+    r_den = np.sqrt(np.sum((X-Xm)**2, axis=1) * np.sum((y-ym)**2))
+    r = r_num/r_den
+    return(r)
 
 def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, formula2mass, label_str, params):
     '''
