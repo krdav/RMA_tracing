@@ -36,7 +36,6 @@ A list of compounds known to be labelled is stored as `known_cys_labeled.tab` an
 | Name | Label | Formula                         | RT  |
 |------|-------|---------------------------------|-----|
 | GSH  | m     | C10 H17 N3 O6 S                 | 9.8 |
-|------|-------|---------------------------------|-----|
 | GSH  | m+4   | C7 \[13\]C3 H17 N2 \[15\]N O6 S | 9.8 |
 
 
