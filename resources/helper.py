@@ -106,7 +106,9 @@ class PeakData:
         N_min_area = count_before - len(peak_data)
         peak_data = self.min_MW_peak_filter(peak_data, self.params['min_MW'])
         N_min_MW = count_before - len(peak_data) - N_min_area
-        peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol'], self.params['merge_corr_tol'])
+        # Apply RT and correlation criterium separately.
+        peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol'], -1)
+        peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol']*2, self.params['merge_corr_tol'])
         N_merge = count_before - len(peak_data) - N_min_area - N_min_MW
         count_after = len(peak_data)
         print('Filtered {} peaks out based on.\n\
@@ -138,7 +140,8 @@ Merged closely related peaks: {}\n\
         It works by searching for peaks that fulfill two criteria:
         1) Being within a maximum mass difference (defined by a ppm value).
         2) Being within a maximum retention time difference,
-        OR having a minimum correlation coefficient between the two peak areas.
+        OR Being within a maximum retention time difference x2 AND
+        having a minimum correlation coefficient between the two peak areas.
 
         Peaks are merged by taken the sum of the peak areas and keeping
         the molecular mass and retention time from the peak with the 
@@ -160,7 +163,7 @@ Merged closely related peaks: {}\n\
             corr_mask = vcorrcoef(area, area[i]) > corr_tol
 
             # Make a mask and store peak pairs:
-            mask = (MW_diff_mask) & (RT_diff_mask | corr_mask)
+            mask = (MW_diff_mask) & RT_diff_mask & corr_mask
             idx_tup = tuple(sorted(np.where(mask)[0]))
             merge_col.append(idx_tup)
 
@@ -183,7 +186,7 @@ Merged closely related peaks: {}\n\
         # Merge back the area dataframe with the rest
         # and remove ancillary columns:
         peak_data_merged = peak_data_rest_grouped.merge(peak_data_area_grouped)
-        peak_data_merged.drop(labels=['merge', 'area_sum'], axis=1)
+        peak_data_merged = peak_data_merged.drop(labels=['merge', 'area_sum'], axis=1)
 
         return(peak_data_merged)
 
@@ -418,10 +421,9 @@ Merged closely related peaks: {}\n\
                     for idx in self._np.where(mask)[0]:
                         adduct_flag[idx].append((i, adducts[MW_adduct]))
 
-            # Add adducts to dataframe:
-            adduct_flags = [adduct_flag[idx] if len(adduct_flag[idx])>0 else None for idx in pair_df.index]
-        
-        return(adduct_flags)
+        # Return list of adduct flags:
+        adduct_list = [adduct_flag[idx] if len(adduct_flag[idx])>0 else None for idx in pair_df.index]        
+        return(adduct_list)
 
     def __adduct_expansion(self, MW, adduct_df, polarity):
         '''
