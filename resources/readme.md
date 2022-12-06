@@ -43,9 +43,19 @@ A list of compounds known to be labelled is stored as `known_cys_labeled.tab` an
 ## List of adducts and adduct definitions
 
 
-List of adducts store as `adducts.tab`
+List of adducts lifted from the Fiehn lab:  
+https://fiehnlab.ucdavis.edu/staff/kind/metabolomics/ms-adduct-calculator/  
+Saved as `adducts.tab`  
 
-Adduct definition stored in JSON format as `adduct_def.json`
+All the adducts in this table will be searched for in the matching polarity.
+To exclude an adduct from the search mark it with the pound sign, like below.
+
+| Adduct_name   |Adduct_mass  | Charge |
+|---------------|-------------|--------|
+| M+3H          | 1.007276    | 3      |
+| M+Na          | 22.989218   | 1      |
+| M+H           | 1.007276    | 1      |
+| #M+IsoProp+H  | 61.06534    | 1      |
 
 
 
