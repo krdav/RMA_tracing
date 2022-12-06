@@ -10,6 +10,8 @@ class PeakData:
 
     def __init__(self, name, sample_names, sample_label, min_label, params):
         self.name = name
+        self.hydrogen_mass = 1.007825031898
+        self.electron_mass = 5.485799e-4
         self.sample_names = make_lowercase_dict(sample_names) # Dictionary mapping the area column (sample) names to a more descriptive sample name
         self.sample_label = make_lowercase_dict(sample_label) # Which sample names are labelled with what label e.g. ?
         self.min_label = min_label       # Minimum number of labeled samples where the peak pair passes area ratio criterium
@@ -254,8 +256,8 @@ Merged closely related peaks: {}\n\
         peak_pair_area_heavy = self._pd.DataFrame(columns = pair_columns)
 
         peak_pair_set = set()
-        ppm_cutoff = self.params['MW_shift_ppm_tol']
-        RT_tol = self.params['RT_tol']
+        ppm_cutoff = self.params['pair_ppm_tol']
+        RT_tol = self.params['pair_RT_tol']
         MW = peak_data.loc[:, 'MW'].values
         RT = peak_data.loc[:, 'RT'].values
         peak_id = peak_data.loc[:, 'peak_id'].values
@@ -334,6 +336,124 @@ Merged closely related peaks: {}\n\
         peak_pair_corr = self._pd.concat([pair_info_df, peak_pair_corr], axis=1, sort=False)
 
         return(peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr)
+
+
+    # Find adduct for peak pairs according to polarity:
+    def flag_adducts(self, polarity, adducts_fnam):   
+        for label in sorted(self.labels):        
+            if polarity == 'pos':
+                # Find adducts:
+                adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, polarity, adducts_fnam)
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Adducts", adduct_flags)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['pos']['peak_pair_area_parent']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['pos']['peak_pair_labelp']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['pos']['area_ratio_mask']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Adducts"] = adduct_flags
+
+            elif polarity == 'neg':
+                # Find adducts:
+                adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, polarity, adducts_fnam)
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Adducts", adduct_flags)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['neg']['peak_pair_area_parent']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['neg']['peak_pair_labelp']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['neg']['area_ratio_mask']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['neg']['peak_pair_corr']["Adducts"] = adduct_flags
+            else:
+                raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
+
+    def __flag_adducts_per_label(self, pair_df, area_colnames, polarity, adducts_fnam):
+        '''
+        Search for, and make a column, for adducts found for each peak pair.
+        This function takes an adduct table and will flag adducts
+        found for the peak pairs of the polarity specified.
+        The adducts are found based on a mass tolerance criterium
+        (calculated from ppm_tol), a retention time tolerance criterium
+        and lastly a criterium that requires the sum of the adduct peak areas 
+        to be smaller than the sum of the parent peak areas.
+        The criteria are applied on the parent peaks of each peak pair.
+        '''
+        # Read adduct table:
+        adduct_df = self._pd.read_csv(adducts_fnam, sep='\t', comment='#')
+        # Store adducts in this dict:
+        adduct_flag = {i: [] for i in range(len(pair_df))}
+        
+        # Loop through each pair:
+        MW = pair_df['MW_parent'].values
+        RT = pair_df['RT_parent'].values
+        area_sum = self._np.sum(pair_df.loc[:, area_colnames].values.astype(float), axis=1)
+        for i in range(len(pair_df)):
+            # Make a dict with "mass: adduct_name":
+            adducts = self.__adduct_expansion(MW[i], adduct_df, polarity)
+            # Retention time criterium:
+            RT_diff_mask = self._np.abs(RT[i] - RT) <= self.params['adduct_RT_tol']
+            # Smaller area criterium:
+            area_mask = area_sum[i] > area_sum
+
+            # Test mass shift criterium, for each possible adduct:
+            for MW_adduct in adducts.keys():
+                # Mass shift criterium:
+                MW_tol = MW_adduct * 1e-6 * self.params['adduct_ppm_tol']
+                # Skip adduct if it is M+H or M-H:
+                ### Not necessary with area criterium.
+                if self._np.abs(MW_adduct - MW[i]) >= MW_tol:
+                    MW_diff_mask = self._np.abs(MW_adduct - MW) <= MW_tol
+                    # Make a mask and store peak pairs:
+                    mask = MW_diff_mask & RT_diff_mask & area_mask
+                    for idx in self._np.where(mask)[0]:
+                        adduct_flag[idx].append((i, adducts[MW_adduct]))
+
+            # Add adducts to dataframe:
+            adduct_flags = [adduct_flag[idx] if len(adduct_flag[idx])>0 else None for idx in pair_df.index]
+        
+        return(adduct_flags)
+
+    def __adduct_expansion(self, MW, adduct_df, polarity):
+        '''
+        Expand a mass into its adduct masses.
+        '''
+        MW_adducts = dict()
+        for name, mass, charge in zip(adduct_df['Adduct_name'].values, adduct_df['Adduct_mass'].values, adduct_df['Charge'].values):
+            if polarity == 'pos' and charge > 0:
+                MW_adducts[self.__adduct2mass(MW, name, mass, charge, polarity)] = name
+            elif polarity == 'neg' and charge < 0:
+                MW_adducts[self.__adduct2mass(MW, name, mass, charge, polarity)] = name
+
+        return(MW_adducts)
+
+    def __adduct2mass(self, MW, adduct_name, adduct_mass, adduct_charge, polarity):
+        '''
+        For one mass and one adduct calculate the
+        M+H or M-H molecular weight.
+        '''
+        if adduct_name[0].isdigit():
+            M_mult = int(adduct_name[0])
+            assert(adduct_name[1] == 'M')
+        else:
+            M_mult = 1
+            assert(adduct_name[0] == 'M')
+
+        if polarity == 'pos':
+            MW_adduct = M_mult*MW / adduct_charge + adduct_mass - (self.hydrogen_mass - self.electron_mass)
+        else:
+            MW_adduct = M_mult*MW / -adduct_charge + adduct_mass + (self.hydrogen_mass - self.electron_mass)
+
+        return(MW_adduct)
 
     # Filter all peaks not in the intersection of
     # a given set of labels:
@@ -453,8 +573,8 @@ def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, formula2ma
         area = {label_str[0]:[0], label_str[1]:[0]}
 
         for index, row in dp_df.iterrows():
-            mass_error = params['MW_shift_ppm_tol'] * row['Mass'] * 1e-6
-            RT_mask = ((row['RT'] + params['RT_tol']) > peak_data['RT']) & ((row['RT'] - params['RT_tol']) < peak_data['RT'])
+            mass_error = params['pair_ppm_tol'] * row['Mass'] * 1e-6
+            RT_mask = ((row['RT'] + params['pair_RT_tol']) > peak_data['RT']) & ((row['RT'] - params['pair_RT_tol']) < peak_data['RT'])
             MW_mask = ((row['Mass'] + mass_error) > peak_data['MW']) & ((row['Mass'] - mass_error) < peak_data['MW'])
             mask = RT_mask & MW_mask
             mask_area_max = peak_data[area_colnames].sum(1) == peak_data[mask][area_colnames].sum(1).max()
@@ -479,7 +599,11 @@ def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, formula2ma
     return(desc)
 
 
-def write_filterset(filter_data, filename):
+def write_filterset(excel_peak_pairs, filename, pair_ppm_tol=2, RT_tol=0.1):
+    '''
+    Write a filterset for Compound Discoverer to filter
+    the peak pairs only.
+    '''
     a = '''###
 ###   This file contains the following filters:
 ###   
@@ -508,7 +632,7 @@ def write_filterset(filter_data, filename):
     e = """NARY_AND 2 isbetween FilterConditionProperties 1  'NamedComparableFilterCondition/DisplayPropertyHint' 'Molecular Weight' property 'System.Double, mscorlib' 'MolecularWeight' constant 'System.Double, mscorlib' 'MW_low' constant 'System.Double, mscorlib' 'MW_high' isbetween FilterConditionProperties 1  'NamedComparableFilterCondition/DisplayPropertyHint' 'RT [min]' property 'System.Double, mscorlib' 'RetentionTime' constant 'System.Double, mscorlib' 'RT_low' constant 'System.Double, mscorlib' 'RT_high'"""
 
 
-    df = pd.read_excel(filter_data)
+    df = pd.read_excel(excel_peak_pairs)
     mw_list = list(pd.concat([df.loc[:, 'MW_parent'], df.loc[:, 'MW_heavy']]))
     rt_list = list(pd.concat([df.loc[:, 'RT_parent'], df.loc[:, 'RT_heavy']]))
     N_compounds = len(mw_list)
@@ -520,12 +644,12 @@ def write_filterset(filter_data, filename):
     tail = [tail_1]
 
     for mw, rt in zip(mw_list, rt_list):
-        MW_error = mw*params['MW_shift_ppm_tol']*1e-6
+        MW_error = mw*pair_ppm_tol*1e-6
         MW_high = round(mw + MW_error, 4)
         MW_low = round(mw - MW_error, 4)
 
-        RT_high = round(rt + params['RT_tol']/2, 2)
-        RT_low = round(rt - params['RT_tol']/2, 2)
+        RT_high = round(rt + RT_tol/2, 2)
+        RT_low = round(rt - RT_tol/2, 2)
 
         s = b.replace('MW_high', str(MW_high))
         s = s.replace('MW_low', str(MW_low))
