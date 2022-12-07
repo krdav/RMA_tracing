@@ -8,13 +8,12 @@ class PeakData:
     import random as _rd
     import copy as _cp
 
-    def __init__(self, name, sample_names, sample_label, min_label, params):
+    def __init__(self, name, sample_names, sample_label, params):
         self.name = name
         self.hydrogen_mass = 1.007825031898
         self.electron_mass = 5.485799e-4
         self.sample_names = make_lowercase_dict(sample_names) # Dictionary mapping the area column (sample) names to a more descriptive sample name
         self.sample_label = make_lowercase_dict(sample_label) # Which sample names are labelled with what label e.g. ?
-        self.min_label = min_label       # Minimum number of labeled samples where the peak pair passes area ratio criterium
         self.params = params
         # Dummy for peak data:
         self.peak_data_pos = None
@@ -163,7 +162,7 @@ Merged closely related peaks: {}\n\
             corr_mask = vcorrcoef(area, area[i]) > corr_tol
 
             # Make a mask and store peak pairs:
-            mask = (MW_diff_mask) & RT_diff_mask & corr_mask
+            mask = MW_diff_mask & RT_diff_mask & corr_mask
             idx_tup = tuple(sorted(np.where(mask)[0]))
             merge_col.append(idx_tup)
 
@@ -312,7 +311,7 @@ Merged closely related peaks: {}\n\
         for area_ratio_cutoff in self.params['area_ratio_cutoff'][label][1:]:
             area_ratio_mask = (area_ratio_mask |  # already in the mask
                               ((peak_pair_labelp >= area_ratio_cutoff[0]) &  # ratio must be above min cutoff
-                               (peak_pair_labelp <= area_ratio_cutoff[1]))) # ratio must be below max cutoff
+                               (peak_pair_labelp <= area_ratio_cutoff[1])))  # ratio must be below max cutoff
 
         # Add pair info:
         pair_info_df = peak_pair_area_heavy.loc[:, pair_info_mask]
@@ -323,7 +322,7 @@ Merged closely related peaks: {}\n\
         area_ratio_drop = list()
         for i in range(len(peak_pair_area_parent)):
             cols_with_label = area_ratio_mask.columns.isin((self.label_pairs[label]['label_colnames']))
-            if sum(area_ratio_mask.loc[i, cols_with_label]) < self.min_label:
+            if sum(area_ratio_mask.loc[i, cols_with_label]) < self.params['pair_min_area']:
                 area_ratio_drop.append(i)
 
         peak_pair_area_parent = peak_pair_area_parent.drop(labels=area_ratio_drop, axis=0).reset_index(drop=True, inplace=False)
@@ -341,7 +340,7 @@ Merged closely related peaks: {}\n\
         return(peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr)
 
 
-    # Find adduct for peak pairs according to polarity:
+    # Find adducts for peak pairs according to polarity:
     def flag_adducts(self, polarity, adducts_fnam):   
         for label in sorted(self.labels):        
             if polarity == 'pos':
@@ -456,6 +455,89 @@ Merged closely related peaks: {}\n\
             MW_adduct = M_mult*MW / -adduct_charge + adduct_mass + (self.hydrogen_mass - self.electron_mass)
 
         return(MW_adduct)
+
+    # Find isotopes for peak pairs according to polarity:
+    def flag_isotopes(self, polarity, isotope_set):   
+        for label in sorted(self.labels):        
+            if polarity == 'pos':
+                # Find isotopes:
+                isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, polarity, isotope_set)
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Isotopes", isotope_flags)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['pos']['peak_pair_area_parent']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['pos']['peak_pair_labelp']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['pos']['area_ratio_mask']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Isotopes"] = isotope_flags
+
+            elif polarity == 'neg':
+                # Find isotopes:
+                isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, polarity, isotope_set)
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Isotopes", isotope_flags)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['neg']['peak_pair_area_parent']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['neg']['peak_pair_labelp']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['neg']['area_ratio_mask']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['neg']['peak_pair_corr']["Isotopes"] = isotope_flags
+            else:
+                raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
+
+    def __flag_isotopes_per_label(self, pair_df, area_colnames, polarity, isotope_set):
+        '''
+        Find and flag isotopes defined in isotope_set.
+        The isotopes are found based on a mass tolerance criterium
+        (calculated from ppm_tol), a retention time tolerance criterium
+        a criterium that requires the sum of the isotope peak areas 
+        to be smaller than the sum of the parent peak areas and
+        a criterium for minimum correlation between parent and isotope peaks.
+        The criteria are applied on the parent peaks of each peak pair.
+        '''
+        # Store isotopes in this dict:
+        isotope_flag = {i: [] for i in range(len(pair_df))}
+
+        # Loop through each pair:
+        MW = pair_df['MW_parent'].values
+        RT = pair_df['RT_parent'].values
+        area = pair_df.loc[:, area_colnames].values.astype(float)
+        area_sum = self._np.sum(area, axis=1)
+        for i in range(len(pair_df)):
+            # Make a dict with "mass: isotope_name":
+            isotopes = {isotope_set[iso_tup]['mass_shift']: ' '.join(iso_tup) for iso_tup in isotope_set}
+            # Retention time criterium:
+            RT_diff_mask = self._np.abs(RT[i] - RT) <= self.params['isotope_RT_tol']
+            # Smaller area criterium:
+            area_mask = area_sum[i] > area_sum
+            # Peak area correlation criterium:
+            corr_mask = vcorrcoef(area, area[i]) > self.params['isotope_corr_tol']
+
+            # Test mass shift criterium, for each possible isotope:
+            for MW_shift_isotope in isotopes.keys():
+                MW_isotope = MW_shift_isotope + MW[i]
+                # Mass shift criterium:
+                MW_tol = MW_isotope * 1e-6 * self.params['isotope_ppm_tol']
+                MW_diff_mask = self._np.abs(MW_isotope - MW) <= MW_tol
+                # Make a mask and store peak pairs:
+                mask = MW_diff_mask & RT_diff_mask & area_mask & corr_mask
+                for idx in self._np.where(mask)[0]:
+                    isotope_flag[idx].append((i, isotopes[MW_shift_isotope]))
+
+        # Return list of isotope flags:
+        isotope_list = [isotope_flag[idx] if len(isotope_flag[idx])>0 else None for idx in pair_df.index]
+
+        return(isotope_list)
 
     # Filter all peaks not in the intersection of
     # a given set of labels:
