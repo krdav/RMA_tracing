@@ -467,36 +467,42 @@ Merged closely related peaks: {}\n\
             if polarity == 'pos':
                 # Find adducts:
                 adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, polarity, adducts_fnam)
+                corr_sort_order_rv = self.label_pairs[label]['pos']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                adduct_flags_corr_sorted = [t[0] for t in sorted(zip(adduct_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
                     self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Adducts", adduct_flags)
                     self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Adducts", adduct_flags)
                     self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Adducts", adduct_flags)
                     self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Adducts", adduct_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['pos']['peak_pair_area_parent']["Adducts"] = adduct_flags
                     self.label_pairs[label]['pos']['peak_pair_area_heavy']["Adducts"] = adduct_flags
                     self.label_pairs[label]['pos']['peak_pair_labelp']["Adducts"] = adduct_flags
                     self.label_pairs[label]['pos']['area_ratio_mask']["Adducts"] = adduct_flags
-                    self.label_pairs[label]['pos']['peak_pair_corr']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Adducts"] = adduct_flags_corr_sorted
 
             elif polarity == 'neg':
                 # Find adducts:
                 adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, polarity, adducts_fnam)
+                corr_sort_order_rv = self.label_pairs[label]['neg']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                adduct_flags_corr_sorted = [t[0] for t in sorted(zip(adduct_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
                     self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Adducts", adduct_flags)
                     self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Adducts", adduct_flags)
                     self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Adducts", adduct_flags)
                     self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Adducts", adduct_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['neg']['peak_pair_area_parent']["Adducts"] = adduct_flags
                     self.label_pairs[label]['neg']['peak_pair_area_heavy']["Adducts"] = adduct_flags
                     self.label_pairs[label]['neg']['peak_pair_labelp']["Adducts"] = adduct_flags
                     self.label_pairs[label]['neg']['area_ratio_mask']["Adducts"] = adduct_flags
-                    self.label_pairs[label]['neg']['peak_pair_corr']["Adducts"] = adduct_flags
+                    self.label_pairs[label]['neg']['peak_pair_corr']["Adducts"] = adduct_flags_corr_sorted
             else:
                 raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
@@ -583,23 +589,29 @@ Merged closely related peaks: {}\n\
             if polarity == 'pos':
                 # Find isotopes:
                 isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, polarity, isotope_set)
+                corr_sort_order_rv = self.label_pairs[label]['pos']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                isotope_flags_corr_sorted = [t[0] for t in sorted(zip(isotope_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
                     self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Isotopes", isotope_flags)
                     self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Isotopes", isotope_flags)
                     self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Isotopes", isotope_flags)
                     self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Isotopes", isotope_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['pos']['peak_pair_area_parent']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['pos']['peak_pair_area_heavy']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['pos']['peak_pair_labelp']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['pos']['area_ratio_mask']["Isotopes"] = isotope_flags
-                    self.label_pairs[label]['pos']['peak_pair_corr']["Isotopes"] = isotope_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Isotopes"] = isotope_flags_corr_sorted
 
             elif polarity == 'neg':
                 # Find isotopes:
                 isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, polarity, isotope_set)
+                corr_sort_order_rv = self.label_pairs[label]['neg']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                isotope_flags_corr_sorted = [t[0] for t in sorted(zip(isotope_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
                     self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Isotopes", isotope_flags)
