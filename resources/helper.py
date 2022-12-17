@@ -237,9 +237,9 @@ Merged closely related peaks: {}\n\
 
         return(peak_data)
 
-    # Remove peaks on the blacklist:
     def remove_blacklist_peaks(self, blacklist, polarity='both'):
-        if polarity == 'pos' or 'both':
+        ''' Remove blacklisted peaks from the peak data.'''
+        if polarity in ['pos', 'both']:
             count_before = len(self.peak_data_pos)
             MW = self.peak_data_pos.loc[:, 'MW'].values
             RT = self.peak_data_pos.loc[:, 'RT'].values
@@ -257,7 +257,7 @@ Merged closely related peaks: {}\n\
             count_after = len(self.peak_data_pos)
             print('Blacklist filter in positive polarity filtered {} peaks out. {} peaks left.'.format(count_before - count_after, count_after))
 
-        if polarity == 'neg' or 'both':
+        if polarity in ['neg', 'both']:
             count_before = len(self.peak_data_neg)
             MW = self.peak_data_neg.loc[:, 'MW'].values
             RT = self.peak_data_neg.loc[:, 'RT'].values
@@ -274,6 +274,8 @@ Merged closely related peaks: {}\n\
             self.peak_data_neg = self.peak_data_neg[blacklist_mask].reset_index(drop=True, inplace=False)
             count_after = len(self.peak_data_neg)
             print('Blacklist filter in negative polarity filtered {} peaks out. {} peaks left.'.format(count_before - count_after, count_after))
+        if polarity not in ['pos', 'neg', 'both']:
+            raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
     def pick_ratio(self, known_fnam, polarity, formula2mass, label, label_str):
         '''
@@ -462,11 +464,11 @@ Merged closely related peaks: {}\n\
 
 
     # Find adducts for peak pairs according to polarity:
-    def flag_adducts(self, polarity, adducts_fnam):   
+    def flag_adducts(self, adducts_fnam, polarity='both'):   
         for label in sorted(self.labels):        
-            if polarity == 'pos':
+            if polarity in ['pos', 'both']:
                 # Find adducts:
-                adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, polarity, adducts_fnam)
+                adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, 'pos', adducts_fnam)
                 corr_sort_order_rv = self.label_pairs[label]['pos']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
                 corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
                 adduct_flags_corr_sorted = [t[0] for t in sorted(zip(adduct_flags, corr_sort_order), key=lambda x: x[1])]
@@ -484,9 +486,9 @@ Merged closely related peaks: {}\n\
                     self.label_pairs[label]['pos']['area_ratio_mask']["Adducts"] = adduct_flags
                     self.label_pairs[label]['pos']['peak_pair_corr']["Adducts"] = adduct_flags_corr_sorted
 
-            elif polarity == 'neg':
+            if polarity in ['neg', 'both']:
                 # Find adducts:
-                adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, polarity, adducts_fnam)
+                adduct_flags = self.__flag_adducts_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, 'neg', adducts_fnam)
                 corr_sort_order_rv = self.label_pairs[label]['neg']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
                 corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
                 adduct_flags_corr_sorted = [t[0] for t in sorted(zip(adduct_flags, corr_sort_order), key=lambda x: x[1])]
@@ -503,7 +505,7 @@ Merged closely related peaks: {}\n\
                     self.label_pairs[label]['neg']['peak_pair_labelp']["Adducts"] = adduct_flags
                     self.label_pairs[label]['neg']['area_ratio_mask']["Adducts"] = adduct_flags
                     self.label_pairs[label]['neg']['peak_pair_corr']["Adducts"] = adduct_flags_corr_sorted
-            else:
+            if polarity not in ['pos', 'neg', 'both']:
                 raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
     def __flag_adducts_per_label(self, pair_df, area_colnames, polarity, adducts_fnam):
@@ -584,11 +586,11 @@ Merged closely related peaks: {}\n\
         return(MW_adduct)
 
     # Find isotopes for peak pairs according to polarity:
-    def flag_isotopes(self, polarity, isotope_set):   
+    def flag_isotopes(self, isotope_set, polarity='both'):   
         for label in sorted(self.labels):        
-            if polarity == 'pos':
+            if polarity in ['pos', 'both']:
                 # Find isotopes:
-                isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, polarity, isotope_set)
+                isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], self.area_colnames_pos, isotope_set)
                 corr_sort_order_rv = self.label_pairs[label]['pos']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
                 corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
                 isotope_flags_corr_sorted = [t[0] for t in sorted(zip(isotope_flags, corr_sort_order), key=lambda x: x[1])]
@@ -606,9 +608,9 @@ Merged closely related peaks: {}\n\
                     self.label_pairs[label]['pos']['area_ratio_mask']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['pos']['peak_pair_corr']["Isotopes"] = isotope_flags_corr_sorted
 
-            elif polarity == 'neg':
+            if polarity in ['neg', 'both']:
                 # Find isotopes:
-                isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, polarity, isotope_set)
+                isotope_flags = self.__flag_isotopes_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], self.area_colnames_neg, isotope_set)
                 corr_sort_order_rv = self.label_pairs[label]['neg']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
                 corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
                 isotope_flags_corr_sorted = [t[0] for t in sorted(zip(isotope_flags, corr_sort_order), key=lambda x: x[1])]
@@ -625,10 +627,10 @@ Merged closely related peaks: {}\n\
                     self.label_pairs[label]['neg']['peak_pair_labelp']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['neg']['area_ratio_mask']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['neg']['peak_pair_corr']["Isotopes"] = isotope_flags
-            else:
+            if polarity not in ['pos', 'neg', 'both']:
                 raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
-    def __flag_isotopes_per_label(self, pair_df, area_colnames, polarity, isotope_set):
+    def __flag_isotopes_per_label(self, pair_df, area_colnames, isotope_set):
         '''
         Find and flag isotopes defined in isotope_set.
         The isotopes are found based on a mass tolerance criterium
@@ -671,6 +673,84 @@ Merged closely related peaks: {}\n\
         isotope_list = [isotope_flag[idx] if len(isotope_flag[idx])>0 else None for idx in pair_df.index]
 
         return(isotope_list)
+
+    # Find isotopes for peak pairs according to polarity:
+    def flag_blacklist(self, blacklist_dict, polarity='both'):   
+        for label in sorted(self.labels):        
+            if polarity in ['pos', 'both']:
+                # Find blacklisted compounds:
+                blacklist_flags = self.__flag_blacklist_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], blacklist_dict['pos'])
+                corr_sort_order_rv = self.label_pairs[label]['pos']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                blacklist_flags_corr_sorted = [t[0] for t in sorted(zip(blacklist_flags, corr_sort_order), key=lambda x: x[1])]
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Blacklist", blacklist_flags_corr_sorted)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['pos']['peak_pair_area_parent']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['pos']['peak_pair_labelp']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['pos']['area_ratio_mask']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Blacklist"] = blacklist_flags_corr_sorted
+
+            if polarity in ['neg', 'both']:
+                # Find blacklisted compounds:
+                blacklist_flags = self.__flag_blacklist_per_label(self.label_pairs[label]['neg']['peak_pair_area_parent'], blacklist_dict['neg'])
+                corr_sort_order_rv = self.label_pairs[label]['neg']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                blacklist_flags_corr_sorted = [t[0] for t in sorted(zip(blacklist_flags, corr_sort_order), key=lambda x: x[1])]
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Blacklist", blacklist_flags)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['neg']['peak_pair_area_parent']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['neg']['peak_pair_labelp']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['neg']['area_ratio_mask']["Blacklist"] = blacklist_flags
+                    self.label_pairs[label]['neg']['peak_pair_corr']["Blacklist"] = blacklist_flags
+            if polarity not in ['pos', 'neg', 'both']:
+                raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
+
+    def __flag_blacklist_per_label(self, pair_df, blacklist):
+        '''
+        Find and flag compounds defined in blacklist_dict.
+        The compounds are found based on a mass tolerance criterium
+        (calculated from ppm_tol) and a retention time tolerance criterium.
+        The criteria are applied on the parent peaks of each peak pair.
+        '''
+        # Store blacklist flags in this dict:
+        blacklist_flag = {i: [] for i in range(len(pair_df))}
+
+        MW = pair_df['MW_parent'].values
+        RT = pair_df['RT_parent'].values
+        blacklist_mask = MW > 0 # dummy mask, all True
+        for peak in blacklist:
+            MW_i = blacklist[peak]['MW']
+            RT_i = blacklist[peak]['RT']
+            # Retention time criterium:
+            RT_diff_mask = self._np.abs(RT_i - RT) <= blacklist[peak]['RT_tol']
+            # Mass shift criterium:
+            MW_tol = MW_i * 1e-6 * blacklist[peak]['MW_ppm_tol']
+            MW_diff_mask = self._np.abs(MW_i - MW) <= MW_tol
+            mask = (RT_diff_mask & MW_diff_mask)
+
+            # If found, add description:
+            if mask.sum() > 0:
+                for idx in self._np.where(mask)[0]:
+                    blacklist_flag[idx].append(blacklist[peak]['Description'])
+
+        # Return list of blacklist flags:
+        flag_list = [blacklist_flag[idx] if len(blacklist_flag[idx])>0 else None for idx in pair_df.index]
+        
+        return(flag_list)
 
     # Filter all peaks not in the intersection of
     # a given set of labels:
