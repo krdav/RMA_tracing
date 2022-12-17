@@ -227,6 +227,78 @@ Merged closely related peaks: {}\n\
             count_after = len(self.peak_data_neg)
             print('Blacklist filter in negative polarity filtered {} peaks out. {} peaks left.'.format(count_before - count_after, count_after))
 
+    def pick_ratio(self, known_fnam, polarity, formula2mass, label, label_str):
+        '''
+        Search for known peak pairs and calculate statistics
+        to help adjust filtering parameters.
+        The input known labelled compounds is provided as a tab
+        separated file.
+        The polarity for the search is specified.
+        A function ("formula2mass") is specified from an Isotope
+        object to convert formula to mass.
+        The label in specified.
+        The "label string" is specified as a list of two strings,
+        indicating the nominal mass shift for each isotope of the compound.
+        Example: ['m', m+4] to compare the parent unlabelled compound
+        to the nominally 4 Da mass shifted labelled compound.
+        '''
+
+        try:
+            labeled_columns = self.sample_label[label]
+        except KeyError:
+            raise Exception('Label not defined: {}'.format(label))
+
+        if polarity == 'pos':
+            peak_data = self.peak_data_pos
+            area_colnames = self.area_colnames_pos
+        elif polarity == 'neg':
+            peak_data = self.peak_data_neg
+            area_colnames = self.area_colnames_neg
+        else:
+            raise Exception('Polarity not valid: {}'.format(polarity))
+
+
+        df_known = self._pd.read_csv(known_fnam, sep='\t')
+        # Convert the "Formula" column to an exact mass:
+        df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
+        known_compounds = sorted(list(set(df_known['Name'].values)))
+        known_idx = [n + ' ({})'.format(f) for n, f in zip(df_known['Name'], df_known['Label'])]
+        perc_lab = self._pd.DataFrame(columns=area_colnames, index=known_idx)
+
+        # For each compound:
+        for compound in known_compounds:
+            dp_df = df_known[df_known['Name'] == compound]
+            area = {label_str[0]:[0], label_str[1]:[0]}
+            # Search in the peaks for each labelled compound
+            # i.e. for each isotope: 
+            for index, row in dp_df.iterrows():
+                mass_error = row['MW_ppm_tol'] * row['Mass'] * 1e-6
+                RT_mask = ((row['RT'] + row['RT_tol']) > peak_data['RT']) & ((row['RT'] - row['RT_tol']) < peak_data['RT'])
+                MW_mask = ((row['Mass'] + mass_error) > peak_data['MW']) & ((row['Mass'] - mass_error) < peak_data['MW'])
+                mask = RT_mask & MW_mask
+                # The search might yield multiple peaks,
+                # in such cases only use the peak with the largest peak area:
+                mask_area_max = peak_data[area_colnames].sum(1) == peak_data[mask][area_colnames].sum(1).max()
+                mask = mask & mask_area_max
+                if sum(mask) == 1:
+                    area[row['Label']] = peak_data[mask][area_colnames].values[0]
+
+            # Find the percent labelling:
+            if sum(area[label_str[0]]) > 0 and sum(area[label_str[1]]) > 0:
+                area_sum = area[label_str[0]] + area[label_str[1]]
+                perc_m = area[label_str[0]] / area_sum
+                perc_mX = area[label_str[1]] / area_sum
+
+                idx = compound + ' ({})'.format(label_str[0])
+                perc_lab.loc[idx] = perc_m
+
+                idx = compound + ' ({})'.format(label_str[1])
+                perc_lab.loc[idx] = perc_mX
+
+        x_labeled = perc_lab.loc[:, perc_lab.columns.isin((labeled_columns))].dropna().astype('float64')
+        desc = x_labeled.T.describe(include='all')
+
+        return(desc)
 
     # Find peak pairs according to polarity:
     def find_pairs(self, polarity):
@@ -634,53 +706,6 @@ def vcorrcoef(X, y):
     r_den = np.sqrt(np.sum((X-Xm)**2, axis=1) * np.sum((y-ym)**2))
     r = r_num/r_den
     return(r)
-
-def pick_ratio(peak_data, area_colnames, labeled_columns, known_fnam, formula2mass, label_str, params):
-    '''
-    Search for known peak pairs and calculate statistics
-    to help adjust filtering parameters.
-    '''
-    df_known = pd.read_csv(known_fnam, sep='\t')
-    # Convert the "Formula" column to an exact mass:
-
-#    symbol2mass, isotope2mass = read_mass_table(elements_fnam)
-#    df_known['Mass'] = [formula2mass(symbol2mass, isotope2mass, f) for f in df_known['Formula']]
-    df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
-
-
-    known_compounds = sorted(list(set(df_known['Name'].values)))
-    known_idx = [n + ' ({})'.format(f) for n, f in zip(df_known['Name'], df_known['Label'])]
-    perc_lab = pd.DataFrame(columns=area_colnames, index=known_idx)
-
-    for compound in known_compounds:
-        dp_df = df_known[df_known['Name'] == compound]
-        area = {label_str[0]:[0], label_str[1]:[0]}
-
-        for index, row in dp_df.iterrows():
-            mass_error = params['pair_ppm_tol'] * row['Mass'] * 1e-6
-            RT_mask = ((row['RT'] + params['pair_RT_tol']) > peak_data['RT']) & ((row['RT'] - params['pair_RT_tol']) < peak_data['RT'])
-            MW_mask = ((row['Mass'] + mass_error) > peak_data['MW']) & ((row['Mass'] - mass_error) < peak_data['MW'])
-            mask = RT_mask & MW_mask
-            mask_area_max = peak_data[area_colnames].sum(1) == peak_data[mask][area_colnames].sum(1).max()
-            mask = mask & mask_area_max
-            if sum(mask) == 1:
-                area[row['Label']] = peak_data[mask][area_colnames].values[0]
-
-        if sum(area[label_str[0]]) > 0 and sum(area[label_str[1]]) > 0:
-            area_sum = area[label_str[0]] + area[label_str[1]]
-            perc_m = area[label_str[0]] / area_sum
-            perc_m4 = area[label_str[1]] / area_sum
-
-            idx = compound + ' ({})'.format(label_str[0])
-            perc_lab.loc[idx] = perc_m
-
-            idx = compound + ' ({})'.format(label_str[1])
-            perc_lab.loc[idx] = perc_m4
-
-    x_labeled = perc_lab.loc[:, perc_lab.columns.isin((labeled_columns))].dropna().astype('float64')
-    desc = x_labeled.T.describe(include='all')
-
-    return(desc)
 
 
 def write_filterset(excel_peak_pairs, filename, pair_ppm_tol=2, RT_tol=0.1):
