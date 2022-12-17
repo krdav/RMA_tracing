@@ -1,14 +1,14 @@
-Name	Label	Formula	RT
-GSH	m	C10 H17 N3 O6 S	9.8
-GSH	m+5	C5 [13]C5 H17 N3 O6 S	9.8
-S-Glutathionyl-cysteine	m	C13 H22 N4 O8 S2	11.38
-S-Glutathionyl-cysteine	m+5	C8 [13]C5 H22 N4 O8 S2	11.38
-GSSG	m	C20 H32 N6 O12 S2	11.94
-GSSG	m+5	C15 [13]C5 H32 N6 O12 S2	11.94
-GSSG	m+10	C10 [13]C10 H32 N6 O12 S2	11.94
-Glutamine	m	C5 H10 N2 O3	9.8
-Glutamine	m+5	[13]C5 H10 N2 O3	9.8
-S-Lactoylglutathione	m	C13 H21 N3 O8 S	9.12
-S-Lactoylglutathione	m+5	C8 [13]C5 H21 N3 O8 S	9.12
-S-(Formylmethyl)glutathione	m	C12 H19 N3 O7 S	8.89
-S-(Formylmethyl)glutathione	m+5	C7 [13]C5 H19 N3 O7 S	8.89
+Name	Label	Formula	RT	MW_ppm_tol	RT_tol
+GSH	m	C10 H17 N3 O6 S	9.8	5	2
+GSH	m+5	C5 [13]C5 H17 N3 O6 S	9.8	5	2
+S-Glutathionyl-cysteine	m	C13 H22 N4 O8 S2	11.38	5	2
+S-Glutathionyl-cysteine	m+5	C8 [13]C5 H22 N4 O8 S2	11.38	5	2
+GSSG	m	C20 H32 N6 O12 S2	11.94	5	2
+GSSG	m+5	C15 [13]C5 H32 N6 O12 S2	11.94	5	2
+GSSG	m+10	C10 [13]C10 H32 N6 O12 S2	11.94	5	2
+Glutamine	m	C5 H10 N2 O3	9.8	5	2
+Glutamine	m+5	[13]C5 H10 N2 O3	9.8	5	2
+S-Lactoylglutathione	m	C13 H21 N3 O8 S	9.12	5	2
+S-Lactoylglutathione	m+5	C8 [13]C5 H21 N3 O8 S	9.12	5	2
+S-(Formylmethyl)glutathione	m	C12 H19 N3 O7 S	8.89	5	2
+S-(Formylmethyl)glutathione	m+5	C7 [13]C5 H19 N3 O7 S	8.89	5	2
