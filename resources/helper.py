@@ -189,6 +189,54 @@ Merged closely related peaks: {}\n\
 
         return(peak_data_merged)
 
+    def annotate_known(self, known_fnam, formula2mass):
+        '''
+        Search for and add compound name to peaks
+        that have a matching known compound in
+        the input list.
+        '''
+
+        df_known = self._pd.read_csv(known_fnam, sep='\t')
+        # Convert the "Formula" column to an exact mass:
+        df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
+
+        # Annotate in both polarities:
+        for polarity in ['pos', 'neg']:
+            # Skip if no data for this polarity,
+            # otherwise add annotations:
+            if polarity == 'pos':
+                if self.area_colnames_pos == None:
+                    continue
+                self.peak_data_pos = self.__annotate_known_polarity(df_known, self.peak_data_pos)
+            elif polarity == 'neg':
+                if self.area_colnames_neg == None:
+                    continue
+                self.peak_data_neg = self.__annotate_known_polarity(df_known, self.peak_data_neg)
+
+    def __annotate_known_polarity(self, df_known, peak_data):
+        '''Add annotations in a specified polarity.'''
+
+        # Store annotations in this dictionary:
+        anno_dict = dict()
+
+        # Search for each known compound in the peak data:
+        for index, row in df_known.iterrows():
+            mass_error = row['MW_ppm_tol'] * row['Mass'] * 1e-6
+            RT_mask = ((row['RT'] + row['RT_tol']) > peak_data['RT']) & ((row['RT'] - row['RT_tol']) < peak_data['RT'])
+            MW_mask = ((row['Mass'] + mass_error) > peak_data['MW']) & ((row['Mass'] - mass_error) < peak_data['MW'])
+            mask = RT_mask & MW_mask
+            # Store annotations in index based dictionary:
+            if mask.sum() > 0:
+                for j in self._np.where(mask)[0]:
+                    anno_dict[j] = row['Name']
+
+        # Convert annotation dictionary to list,
+        # and add to peak dataframe:
+        anno_list = [anno_dict[i] if i in anno_dict else None for i in range(len(peak_data))]
+        peak_data['known_anno'] = anno_list
+
+        return(peak_data)
+
     # Remove peaks on the blacklist:
     def remove_blacklist_peaks(self, blacklist, polarity='both'):
         if polarity == 'pos' or 'both':
@@ -321,7 +369,7 @@ Merged closely related peaks: {}\n\
         '''
         # Columns in peak pair table:
         pair_info_mask = ['pair_id', 'MW_parent', 'RT_parent', 'MW_heavy', 'RT_heavy',
-                          'polarity', 'label', 'name']
+                          'polarity', 'label', 'name', 'known_anno']
         pair_columns = self._cp.deepcopy(pair_info_mask)
         # Add area to the peak pair table:
         pair_columns.extend(area_colnames)
@@ -353,18 +401,19 @@ Merged closely related peaks: {}\n\
                     # Because df is sorted by MW,
                     # i is parent, j is heavy
                     CD_name = peak_data.loc[i, 'name']
+                    known_anno = peak_data.loc[i, 'known_anno']
                     pair_id = (peak_id[i], peak_id[j], polarity, label)
                     assert(pair_id not in peak_pair_set)
                     peak_pair_set.add(pair_id)
 
                     # Add data to each peak pair table:
                     tmp_df = self._pd.DataFrame(columns = pair_columns)
-                    tmp_df.loc[i, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name], dtype=object)
+                    tmp_df.loc[i, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, known_anno], dtype=object)
                     tmp_df.loc[i, area_colnames] = peak_data.loc[i, area_colnames]
                     peak_pair_area_parent = peak_pair_area_parent.append(tmp_df, ignore_index=True)
                     tmp_df = self._pd.DataFrame(columns = pair_columns)
                     tmp_df.loc[j, area_colnames] = peak_data.loc[j, area_colnames]
-                    tmp_df.loc[j, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name], dtype=object)
+                    tmp_df.loc[j, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, known_anno], dtype=object)
                     peak_pair_area_heavy = peak_pair_area_heavy.append(tmp_df, ignore_index=True)
 
         # Reset index for peak pairs:
