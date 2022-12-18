@@ -189,7 +189,7 @@ Merged closely related peaks: {}\n\
 
         return(peak_data_merged)
 
-    def annotate_known(self, known_fnam, formula2mass):
+    def annotate_known_peaks(self, known_fnam, formula2mass):
         '''
         Search for and add compound name to peaks
         that have a matching known compound in
@@ -371,7 +371,7 @@ Merged closely related peaks: {}\n\
         '''
         # Columns in peak pair table:
         pair_info_mask = ['pair_id', 'MW_parent', 'RT_parent', 'MW_heavy', 'RT_heavy',
-                          'polarity', 'label', 'name', 'known_anno']
+                          'polarity', 'label', 'name', 'RT_diff', 'MW_ppm_diff', 'known_anno']
         pair_columns = self._cp.deepcopy(pair_info_mask)
         # Add area to the peak pair table:
         pair_columns.extend(area_colnames)
@@ -410,12 +410,14 @@ Merged closely related peaks: {}\n\
 
                     # Add data to each peak pair table:
                     tmp_df = self._pd.DataFrame(columns = pair_columns)
-                    tmp_df.loc[i, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, known_anno], dtype=object)
+                    RT_diff = np.abs(RT[i] - RT[j])
+                    MW_ppm_diff = np.abs((MW[i] + MW_shift) - MW[j]) / MW[i] * 1e6
+                    tmp_df.loc[i, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, RT_diff, MW_ppm_diff, known_anno], dtype=object)
                     tmp_df.loc[i, area_colnames] = peak_data.loc[i, area_colnames]
                     peak_pair_area_parent = peak_pair_area_parent.append(tmp_df, ignore_index=True)
                     tmp_df = self._pd.DataFrame(columns = pair_columns)
                     tmp_df.loc[j, area_colnames] = peak_data.loc[j, area_colnames]
-                    tmp_df.loc[j, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, known_anno], dtype=object)
+                    tmp_df.loc[j, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, RT_diff, MW_ppm_diff, known_anno], dtype=object)
                     peak_pair_area_heavy = peak_pair_area_heavy.append(tmp_df, ignore_index=True)
 
         # Reset index for peak pairs:
@@ -474,11 +476,11 @@ Merged closely related peaks: {}\n\
                 adduct_flags_corr_sorted = [t[0] for t in sorted(zip(adduct_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Adducts", adduct_flags_corr_sorted)
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(10, "Adducts", adduct_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['pos']['peak_pair_area_parent']["Adducts"] = adduct_flags
                     self.label_pairs[label]['pos']['peak_pair_area_heavy']["Adducts"] = adduct_flags
@@ -494,11 +496,11 @@ Merged closely related peaks: {}\n\
                 adduct_flags_corr_sorted = [t[0] for t in sorted(zip(adduct_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Adducts", adduct_flags)
-                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Adducts", adduct_flags_corr_sorted)
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(10, "Adducts", adduct_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(10, "Adducts", adduct_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['neg']['peak_pair_area_parent']["Adducts"] = adduct_flags
                     self.label_pairs[label]['neg']['peak_pair_area_heavy']["Adducts"] = adduct_flags
@@ -596,11 +598,11 @@ Merged closely related peaks: {}\n\
                 isotope_flags_corr_sorted = [t[0] for t in sorted(zip(isotope_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Isotopes", isotope_flags_corr_sorted)
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(10, "Isotopes", isotope_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['pos']['peak_pair_area_parent']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['pos']['peak_pair_area_heavy']["Isotopes"] = isotope_flags
@@ -616,11 +618,11 @@ Merged closely related peaks: {}\n\
                 isotope_flags_corr_sorted = [t[0] for t in sorted(zip(isotope_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Isotopes", isotope_flags)
-                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(10, "Isotopes", isotope_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(10, "Isotopes", isotope_flags)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['neg']['peak_pair_area_parent']["Isotopes"] = isotope_flags
                     self.label_pairs[label]['neg']['peak_pair_area_heavy']["Isotopes"] = isotope_flags
@@ -685,11 +687,11 @@ Merged closely related peaks: {}\n\
                 blacklist_flags_corr_sorted = [t[0] for t in sorted(zip(blacklist_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(8, "Blacklist", blacklist_flags_corr_sorted)
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(10, "Blacklist", blacklist_flags_corr_sorted)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['pos']['peak_pair_area_parent']["Blacklist"] = blacklist_flags
                     self.label_pairs[label]['pos']['peak_pair_area_heavy']["Blacklist"] = blacklist_flags
@@ -705,11 +707,11 @@ Merged closely related peaks: {}\n\
                 blacklist_flags_corr_sorted = [t[0] for t in sorted(zip(blacklist_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(8, "Blacklist", blacklist_flags)
-                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(8, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(10, "Blacklist", blacklist_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(10, "Blacklist", blacklist_flags)
                 except ValueError: # Column already exists
                     self.label_pairs[label]['neg']['peak_pair_area_parent']["Blacklist"] = blacklist_flags
                     self.label_pairs[label]['neg']['peak_pair_area_heavy']["Blacklist"] = blacklist_flags
