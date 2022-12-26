@@ -8,12 +8,13 @@ class PeakData:
     import random as _rd
     import copy as _cp
 
-    def __init__(self, name, sample_names, sample_label, params):
+    def __init__(self, name, sample_info, params):
         self.name = name
         self.hydrogen_mass = 1.007825031898
         self.electron_mass = 5.485799e-4
-        self.sample_names = make_lowercase_dict(sample_names) # Dictionary mapping the area column (sample) names to a more descriptive sample name
-        self.sample_label = make_lowercase_dict(sample_label) # Which sample names are labelled with what label e.g. ?
+        #self.sample_names = make_lowercase_dict(sample_names) # Dictionary mapping the area column (sample) names to a more descriptive sample name
+        #self.sample_label = make_lowercase_dict(sample_label) # Which sample names are labelled with what label e.g. ?
+        self.sample_info = sample_info
         self.params = params
         # Dummy for peak data:
         self.peak_data_pos = None
@@ -24,7 +25,11 @@ class PeakData:
 
         # For each label make a dictionary entry with all the
         # tables related to the peak pair from that label:
-        self.labels = list(self.sample_label.keys())
+        self.labels = {self.sample_info[sample]['label'] for sample in self.sample_info if self.sample_info[sample]['type'] != 'blank'}
+        self.sample_label = dict()
+        for label in self.labels:
+            self.sample_label[label] = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['label'] == label and self.sample_info[sample]['type'] != 'blank']
+
         self.label_pairs = dict()
         # Iterate over labels:
         for label in sorted(self.labels):
@@ -39,11 +44,11 @@ class PeakData:
                 self.label_pairs[label][polarity]['peak_pair_corr'] = None # Matrix with accross sample correlation coefficients between peak areas
 
     # Read peak data according to polarity:
-    def read_peaks(self, datafile, polarity):
+    def read_peaks(self, datafile, polarity, drop_blank=True):
         if polarity == 'pos':
-            self.peak_data_pos = self.__peak_reader(datafile, polarity)
+            self.peak_data_pos, self.area_colnames_pos = self.__peak_reader(datafile, polarity)
         elif polarity == 'neg':
-            self.peak_data_neg = self.__peak_reader(datafile, polarity)
+            self.peak_data_neg, self.area_colnames_neg = self.__peak_reader(datafile, polarity)
         else:
             raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
@@ -64,15 +69,16 @@ class PeakData:
         peak_data = csv.loc[:, col_sele]
 
         # Get sample names from sample description:
-        colname_list = []
-        area_colnames = []
+        colname_list = list()
+        area_colnames = list()
+        area_colnames_order = list()
         for col in peak_data.columns:
             if 'area:' in col:
                 colname = False
-                for name in self.sample_names.keys():
-                    if colname is False and name in col:
-                        colname = self.sample_names[name]
-                    elif colname is True and name.lower() in col:
+                for sample in self.sample_info.keys():
+                    if colname is False and sample.lower() in col.lower():
+                        colname = self.sample_info[sample]['name']
+                    elif colname is True and sample.lower() in col.lower():
                         raise Exception('Column "{}" maps to multiple names in sample description. Please correct.'.format(col))
                 if colname is False:
                         raise Exception('Column name "{}" not found. Check sample description.'.format(col))
@@ -81,19 +87,14 @@ class PeakData:
             else:
                 colname_list.append(col)
         peak_data.columns = colname_list
-        
-        if polarity == 'pos':
-            self.area_colnames_pos = area_colnames
-        elif polarity == 'neg':
-            self.area_colnames_neg = area_colnames
-        
+
         # Filter peak dataframe:
         print('Running peak filtering for polarity: {}'.format(polarity))
-        peak_data = self.__run_all_peak_filters(peak_data, area_colnames, self.params)
+        peak_data, area_colnames = self.__run_all_peak_filters(peak_data, area_colnames, self.params)
         peak_data = peak_data.sort_values(by='MW', ascending=True)
         peak_data.reset_index(drop=True, inplace=True)
 
-        return(peak_data)
+        return(peak_data, area_colnames)
 
     # Apply all filters on the peak data:
     def __run_all_peak_filters(self, peak_data, area_colnames, params):
@@ -101,21 +102,28 @@ class PeakData:
         Function to run sequential filtering on peaks.
         '''
         count_before = len(peak_data)
+        # Min area filter:
         peak_data = self.min_area_peak_filter(peak_data, area_colnames, self.params['min_area'])
         N_min_area = count_before - len(peak_data)
+        # Min MW filter:
         peak_data = self.min_MW_peak_filter(peak_data, self.params['min_MW'])
         N_min_MW = count_before - len(peak_data) - N_min_area
+        # Blank filter:
+        peak_data, area_colnames = self.blank_peak_filter(peak_data, self.params['min_fold_blank'])
+        N_blank = count_before - len(peak_data) - N_min_area - N_min_MW
+        # Merge closely related:
         # Apply RT and correlation criterium separately.
         peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol'], -1)
         peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol']*2, self.params['merge_corr_tol'])
-        N_merge = count_before - len(peak_data) - N_min_area - N_min_MW
+        N_merge = count_before - len(peak_data) - N_min_area - N_min_MW - N_blank
         count_after = len(peak_data)
         print('Filtered {} peaks out based on.\n\
 Minimum peak area: {}\n\
 Minimum molecular weight: {}\n\
+Minimum fold over blank: {}\n\
 Merged closely related peaks: {}\n\
-{} peaks left.\n'.format(count_before - count_after, N_min_area, N_min_MW, N_merge, count_after))
-        return(peak_data)
+{} peaks left.\n'.format(count_before - count_after, N_min_area, N_min_MW, N_blank, N_merge, count_after))
+        return(peak_data, area_colnames)
 
     # Filter peaks with area smaller than the cutoff:
     def min_area_peak_filter(self, peak_data, area_colnames, min_area):
@@ -131,6 +139,20 @@ Merged closely related peaks: {}\n\
     def min_MW_peak_filter(self, peak_data, min_MW):
         mask = peak_data['MW'] > min_MW
         return(peak_data[mask])
+
+    # Filter peaks with maximum peak area less than X fold higher
+    # than max peak area for blank samples:
+    def blank_peak_filter(self, peak_data, min_fold):
+        # Get column names for peak areas for samples and blanks:
+        sample_area_colnames = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['type'] == 'sample']
+        blank_area_colnames = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['type'] == 'blank']
+        # Do filtering and drop the blank peak area columns:
+        sample_area_max = peak_data.loc[:, sample_area_colnames].max(axis=1)
+        blank_area_max = peak_data.loc[:, blank_area_colnames].max(axis=1)
+        mask = (sample_area_max / blank_area_max) > min_fold
+        peak_data = peak_data[mask].drop(labels=blank_area_colnames, axis=1)
+
+        return(peak_data, sample_area_colnames)
 
     # Merge peaks with small deviation in m/z.
     def merge_peak_filter(self, peak_data, area_colnames, ppm_tol, RT_tol, corr_tol):
