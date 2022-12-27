@@ -12,8 +12,6 @@ class PeakData:
         self.name = name
         self.hydrogen_mass = 1.007825031898
         self.electron_mass = 5.485799e-4
-        #self.sample_names = make_lowercase_dict(sample_names) # Dictionary mapping the area column (sample) names to a more descriptive sample name
-        #self.sample_label = make_lowercase_dict(sample_label) # Which sample names are labelled with what label e.g. ?
         self.sample_info = sample_info
         self.params = params
         # Dummy for peak data:
@@ -25,7 +23,7 @@ class PeakData:
 
         # For each label make a dictionary entry with all the
         # tables related to the peak pair from that label:
-        self.labels = {self.sample_info[sample]['label'] for sample in self.sample_info if self.sample_info[sample]['type'] != 'blank'}
+        self.labels = {self.sample_info[sample]['label'] for sample in self.sample_info if self.sample_info[sample]['type'] != 'blank' and self.sample_info[sample]['label'] != 'None'}
         self.sample_label = dict()
         for label in self.labels:
             self.sample_label[label] = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['label'] == label and self.sample_info[sample]['type'] != 'blank']
@@ -717,9 +715,9 @@ Merged closely related peaks: {}\n\
 
         return(isotope_list)
 
-    # Find isotopes for peak pairs according to polarity:
-    def flag_blacklist(self, blacklist_dict, polarity='both'):   
-        for label in sorted(self.labels):        
+    # Find blacklisted compounds for peak pairs according to polarity:
+    def flag_blacklist(self, blacklist_dict, polarity='both'):
+        for label in sorted(self.labels):
             if polarity in ['pos', 'both']:
                 # Find blacklisted compounds:
                 blacklist_flags = self.__flag_blacklist_per_label(self.label_pairs[label]['pos']['peak_pair_area_parent'], blacklist_dict['pos'])
@@ -795,39 +793,76 @@ Merged closely related peaks: {}\n\
         
         return(flag_list)
 
-    # Filter all peaks not in the intersection of
-    # a given set of labels:
-    def intersection_pairs(self, labels, polarity):
-        if polarity == 'pos':
-            area_colnames = self.area_colnames_pos
-        elif polarity == 'neg':
-            area_colnames = self.area_colnames_neg
-        else:
-            raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
+    def flag_labels(self, polarity='both'):
+        '''
+        For each peak pair for all the labels, use the parent peak MW and RT
+        as an identifier and assign to these parent peaks the set of labels
+        that they have been observed in.
+        '''
+        if polarity in ['pos', 'both']:
+            # Assign a set of labels to all the parent peaks:
+            labelled_peaks = dict()
+            for label in sorted(self.labels):
+                for peak_pair_id in self.label_pairs[label]['pos']['peak_pair_area_parent']['pair_id'].values:
+                    if peak_pair_id[0] in labelled_peaks:
+                        labelled_peaks[peak_pair_id[0]].add(label)
+                    else:
+                        labelled_peaks[peak_pair_id[0]] = {label}
 
-        pair_info_mask = ['pair_id', 'MW_parent', 'RT_parent', 'MW_heavy', 'RT_heavy',
-                          'polarity', 'label', 'name']
-        # Find the intersection based on parent MW and RT:
-        s_intersection = set([pi[0] for pi in self.label_pairs[labels[0]][polarity]['peak_pair_area_parent']['pair_id'].values])
-        for label in labels:
-            s = set([pi[0] for pi in self.label_pairs[label][polarity]['peak_pair_area_parent']['pair_id'].values])
-            s_intersection = s_intersection.intersection(s)
-        
-        # Update peak pair dataframe for the chosen labels:
-        for label in labels:
-            row_mask = [pi[0] in s_intersection for pi in self.label_pairs[label][polarity]['peak_pair_area_parent']['pair_id'].values]
-            
-            self.label_pairs[label][polarity]['peak_pair_area_parent'] = self.label_pairs[label][polarity]['peak_pair_area_parent'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            self.label_pairs[label][polarity]['peak_pair_area_heavy'] = self.label_pairs[label][polarity]['peak_pair_area_heavy'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            self.label_pairs[label][polarity]['peak_pair_labelp'] = self.label_pairs[label][polarity]['peak_pair_labelp'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            self.label_pairs[label][polarity]['area_ratio_mask'] = self.label_pairs[label][polarity]['area_ratio_mask'].loc[row_mask, :].reset_index(drop=True, inplace=False)
-            
-            # Redo the dataframe with peak pair area correlations:
-            a = self.label_pairs[label][polarity]['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).loc[:, area_colnames]
-            a = a.astype(float)
-            peak_pair_corr = a.T.corr().abs()
-            pair_info_df = self.label_pairs[label][polarity]['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).loc[:, pair_info_mask]
-            self.label_pairs[label][polarity]['peak_pair_corr'] = self._pd.concat([pair_info_df, peak_pair_corr], axis=1, sort=False)
+            # Add flags to dataframes:
+            for label in sorted(self.labels):
+                # Make a list of the labels for each peak pair:
+                label_flags = [set2csv(labelled_peaks[peak_pair_id[0]]) for peak_pair_id in self.label_pairs[label]['pos']['peak_pair_area_parent']['pair_id'].values]
+                corr_sort_order_rv = self.label_pairs[label]['pos']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                label_flags_corr_sorted = [t[0] for t in sorted(zip(label_flags, corr_sort_order), key=lambda x: x[1])]
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(10, "Labels", label_flags_corr_sorted)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['pos']['peak_pair_area_parent']["Labels"] = label_flags
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy']["Labels"] = label_flags
+                    self.label_pairs[label]['pos']['peak_pair_labelp']["Labels"] = label_flags
+                    self.label_pairs[label]['pos']['area_ratio_mask']["Labels"] = label_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Labels"] = label_flags_corr_sorted
+
+        if polarity in ['neg', 'both']:
+            # Assign a set of labels to all the parent peaks:
+            labelled_peaks = dict()
+            for label in sorted(self.labels):
+                for peak_pair_id in self.label_pairs[label]['neg']['peak_pair_area_parent']['pair_id'].values:
+                    if peak_pair_id[0] in labelled_peaks:
+                        labelled_peaks[peak_pair_id[0]].add(label)
+                    else:
+                        labelled_peaks[peak_pair_id[0]] = {label}
+
+            # Add flags to dataframes:
+            for label in sorted(self.labels):
+                # Make a list of the labels for each peak pair:
+                label_flags = [set2csv(labelled_peaks[peak_pair_id[0]]) for peak_pair_id in self.label_pairs[label]['neg']['peak_pair_area_parent']['pair_id'].values]
+                corr_sort_order_rv = self.label_pairs[label]['neg']['peak_pair_area_parent'].sort_values(by='RT_parent', ascending=True).index.values
+                corr_sort_order = [t[0] for t in sorted(zip(range(len(corr_sort_order_rv)), corr_sort_order_rv), key=lambda x: x[1])]
+                label_flags_corr_sorted = [t[0] for t in sorted(zip(label_flags, corr_sort_order), key=lambda x: x[1])]
+                try:
+                    # Insert them as flags in pair dataframe:
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(10, "Labels", label_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(10, "Labels", label_flags_corr_sorted)
+                except ValueError: # Column already exists
+                    self.label_pairs[label]['neg']['peak_pair_area_parent']["Labels"] = label_flags
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy']["Labels"] = label_flags
+                    self.label_pairs[label]['neg']['peak_pair_labelp']["Labels"] = label_flags
+                    self.label_pairs[label]['neg']['area_ratio_mask']["Labels"] = label_flags
+                    self.label_pairs[label]['neg']['peak_pair_corr']["Labels"] = label_flags_corr_sorted
+
+        if polarity not in ['pos', 'neg', 'both']:
+            raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
     # Write the peak pair tables as excel file:
     def write_pairs(self, filename, polarity):
@@ -849,6 +884,9 @@ Merged closely related peaks: {}\n\
             area_ratio_mask.to_excel(writer, sheet_name='area_ratio_{}'.format(label))
 
         writer.close()
+
+def set2csv(s):
+    return(', '.join(str(si) for si in sorted(s)))
 
 def make_lowercase_dict(obj):
     '''
