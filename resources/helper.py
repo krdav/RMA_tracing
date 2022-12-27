@@ -261,11 +261,19 @@ Merged closely related peaks: {}\n\
             # Store annotations in index based dictionary:
             if mask.sum() > 0:
                 for j in self._np.where(mask)[0]:
-                    anno_dict[j] = row['Name']
+                    # If multiple known compounds are found,
+                    # store the one with closest retention time:
+                    if j in anno_dict:
+                        old_RT_diff = self._np.abs(anno_dict[j][1] - peak_data['RT'][j])
+                        new_RT_diff = self._np.abs(row['RT'] - peak_data['RT'][j])
+                        if old_RT_diff > new_RT_diff:
+                            anno_dict[j] = (row['Name'], row['RT'])
+                    else:
+                        anno_dict[j] = (row['Name'], row['RT'])
 
         # Convert annotation dictionary to list,
         # and add to peak dataframe:
-        anno_list = [anno_dict[i] if i in anno_dict else None for i in range(len(peak_data))]
+        anno_list = [anno_dict[i][0] if i in anno_dict else None for i in range(len(peak_data))]
         peak_data['known_anno'] = anno_list
 
         return(peak_data)
