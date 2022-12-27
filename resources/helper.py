@@ -71,6 +71,7 @@ class PeakData:
         # Get sample names from sample description:
         colname_list = list()
         area_colnames = list()
+        area_colnames_type = list()
         area_colnames_order = list()
         for col in peak_data.columns:
             if 'area:' in col:
@@ -78,43 +79,59 @@ class PeakData:
                 for sample in self.sample_info.keys():
                     if colname is False and sample.lower() in col.lower():
                         colname = self.sample_info[sample]['name']
+                        order = self.sample_info[sample]['order']
+                        sample_type = self.sample_info[sample]['type']
                     elif colname is True and sample.lower() in col.lower():
                         raise Exception('Column "{}" maps to multiple names in sample description. Please correct.'.format(col))
                 if colname is False:
                         raise Exception('Column name "{}" not found. Check sample description.'.format(col))
                 colname_list.append(colname)
                 area_colnames.append(colname)
+                area_colnames_type.append(sample_type)
+                area_colnames_order.append(order)
             else:
                 colname_list.append(col)
         peak_data.columns = colname_list
 
+        # Get the area column names in order:
+        sample_area_colnames = [(nam, order) for nam, smtyp, order in zip(area_colnames, area_colnames_type, area_colnames_order) if smtyp == 'sample']
+        sample_area_colnames = [val[0] for val in sorted(sample_area_colnames, key=lambda x: x[1])]
+        blank_area_colnames = [(nam, order) for nam, smtyp, order in zip(area_colnames, area_colnames_type, area_colnames_order) if smtyp == 'blank']
+        blank_area_colnames = [val[0] for val in sorted(blank_area_colnames, key=lambda x: x[1])]
+
         # Filter peak dataframe:
         print('Running peak filtering for polarity: {}'.format(polarity))
-        peak_data, area_colnames = self.__run_all_peak_filters(peak_data, area_colnames, self.params)
+        peak_data = self.__run_all_peak_filters(peak_data, sample_area_colnames, blank_area_colnames, self.params)
+
+        # Drop blank peak areas, then sort peak areas columns
+        # for samples using join:
+        peak_data = peak_data.drop(labels=blank_area_colnames, axis=1)
+        peak_data = peak_data.loc[:, ~peak_data.columns.isin(sample_area_colnames)].join(peak_data.loc[:, sample_area_colnames])
+        # Sort according to molecular weight then return:
         peak_data = peak_data.sort_values(by='MW', ascending=True)
         peak_data.reset_index(drop=True, inplace=True)
 
-        return(peak_data, area_colnames)
+        return(peak_data, sample_area_colnames)
 
     # Apply all filters on the peak data:
-    def __run_all_peak_filters(self, peak_data, area_colnames, params):
+    def __run_all_peak_filters(self, peak_data, sample_area_colnames, blank_area_colnames, params):
         '''
         Function to run sequential filtering on peaks.
         '''
         count_before = len(peak_data)
         # Min area filter:
-        peak_data = self.min_area_peak_filter(peak_data, area_colnames, self.params['min_area'])
+        peak_data = self.min_area_peak_filter(peak_data, sample_area_colnames, self.params['min_area'])
         N_min_area = count_before - len(peak_data)
         # Min MW filter:
         peak_data = self.min_MW_peak_filter(peak_data, self.params['min_MW'])
         N_min_MW = count_before - len(peak_data) - N_min_area
         # Blank filter:
-        peak_data, area_colnames = self.blank_peak_filter(peak_data, self.params['min_fold_blank'])
+        peak_data = self.blank_peak_filter(peak_data, sample_area_colnames, blank_area_colnames, self.params['min_fold_blank'])
         N_blank = count_before - len(peak_data) - N_min_area - N_min_MW
         # Merge closely related:
         # Apply RT and correlation criterium separately.
-        peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol'], -1)
-        peak_data = self.merge_peak_filter(peak_data, area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol']*2, self.params['merge_corr_tol'])
+        peak_data = self.merge_peak_filter(peak_data, sample_area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol'], -1)
+        peak_data = self.merge_peak_filter(peak_data, sample_area_colnames, self.params['merge_ppm_tol'], self.params['merge_RT_tol']*2, self.params['merge_corr_tol'])
         N_merge = count_before - len(peak_data) - N_min_area - N_min_MW - N_blank
         count_after = len(peak_data)
         print('Filtered {} peaks out based on.\n\
@@ -123,7 +140,7 @@ Minimum molecular weight: {}\n\
 Minimum fold over blank: {}\n\
 Merged closely related peaks: {}\n\
 {} peaks left.\n'.format(count_before - count_after, N_min_area, N_min_MW, N_blank, N_merge, count_after))
-        return(peak_data, area_colnames)
+        return(peak_data)
 
     # Filter peaks with area smaller than the cutoff:
     def min_area_peak_filter(self, peak_data, area_colnames, min_area):
@@ -142,17 +159,11 @@ Merged closely related peaks: {}\n\
 
     # Filter peaks with maximum peak area less than X fold higher
     # than max peak area for blank samples:
-    def blank_peak_filter(self, peak_data, min_fold):
-        # Get column names for peak areas for samples and blanks:
-        sample_area_colnames = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['type'] == 'sample']
-        blank_area_colnames = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['type'] == 'blank']
-        # Do filtering and drop the blank peak area columns:
+    def blank_peak_filter(self, peak_data, sample_area_colnames, blank_area_colnames, min_fold):
         sample_area_max = peak_data.loc[:, sample_area_colnames].max(axis=1)
         blank_area_max = peak_data.loc[:, blank_area_colnames].max(axis=1)
         mask = (sample_area_max / blank_area_max) > min_fold
-        peak_data = peak_data[mask].drop(labels=blank_area_colnames, axis=1)
-
-        return(peak_data, sample_area_colnames)
+        return(peak_data[mask])
 
     # Merge peaks with small deviation in m/z.
     def merge_peak_filter(self, peak_data, area_colnames, ppm_tol, RT_tol, corr_tol):
