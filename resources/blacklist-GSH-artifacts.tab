@@ -1,0 +1,56 @@
+Description	MW	RT	Polarity	MW_ppm_tol	RT_tol
+GSH in-source fragment	273.09605	9.806	neg	4	2
+GSH Sodium adduct [M + 2Na -H]+	329.06576	9.892	pos	4	2
+GSH in-source duplet	614.16801	9.835	neg	4	2
+GSH artifact	306.05235	9.993	neg	4	2
+GSH in-source fragment	290.05728	9.8	pos	4	1
+GSH in-source fragment	289.07285	9.8	pos	4	1
+GSH in-source fragment	244.05187	9.8	pos	4	1
+GSH in-source fragment	232.05188	9.8	pos	4	1
+GSH in-source fragment	179.0445	9.8	pos	4	1
+GSH in-source fragment	178.04119	9.8	pos	4	1
+GSH in-source fragment	289.07329	9.8	neg	4	1
+GSH in-source fragment	274.09936	9.8	neg	4	1
+GSH in-source fragment	273.09605	9.8	neg	4	1
+GSH in-source fragment	255.08551	9.8	neg	4	1
+GSH in-source fragment	229.10625	9.8	neg	4	1
+GSH in-source fragment	211.09559	9.8	neg	4	1
+GSH adduct-isotope	330.06869	9.985	neg	4	2
+Inf. GSH artifact	152.05879	9.85	pos	4	0.5
+Inf. GSH artifact	176.02562	9.841	pos	4	0.5
+Inf. GSH artifact	242.03618	9.853	pos	4	0.5
+Inf. GSH artifact	271.08043	9.84	pos	4	0.5
+Inf. GSH artifact	291.05216	9.87	pos	4	0.5
+Inf. GSH artifact	321.06307	9.84	pos	4	0.5
+Inf. GSH artifact	322.09484	9.849	pos	4	0.5
+Inf. GSH artifact	334.08245	9.904	pos	4	0.5
+Inf. GSH artifact	338.08965	9.84	pos	4	0.5
+Inf. GSH artifact	432.09874	9.773	pos	4	0.5
+Inf. GSH artifact	453.15322	9.834	pos	4	0.5
+Inf. GSH artifact	457.0235	10.007	pos	4	0.5
+Inf. GSH artifact	491.1006	9.815	pos	4	0.5
+Inf. GSH artifact	492.08456	10.023	pos	4	0.5
+Inf. GSH artifact	518.17233	9.902	pos	4	0.5
+Inf. GSH artifact	549.1209	9.979	pos	4	0.5
+Inf. GSH artifact	567.13137	9.976	pos	4	0.5
+Inf. GSH artifact	609.04795	9.813	pos	4	0.5
+Inf. GSH artifact	615.06547	9.81	pos	4	0.5
+Inf. GSH artifact	888.20018	9.814	pos	4	0.5
+Inf. GSH artifact	185.11639	9.824	neg	4	0.5
+Inf. GSH artifact	198.06408	9.826	neg	4	0.5
+Inf. GSH artifact	346.09472	9.87	neg	4	0.5
+Inf. GSH artifact	407.00911	9.796	neg	4	0.5
+Inf. GSH artifact	419.07656	9.947	neg	4	0.5
+Inf. GSH artifact	432.09848	9.735	neg	4	0.5
+Inf. GSH artifact	461.03266	9.945	neg	4	0.5
+Inf. GSH artifact	469.13684	10.022	neg	4	0.5
+Inf. GSH artifact	489.03539	9.902	neg	4	0.5
+Inf. GSH artifact	497.11753	9.788	neg	4	0.5
+Inf. GSH artifact	498.10139	10.002	neg	4	0.5
+Inf. GSH artifact	520.0834	9.975	neg	4	0.5
+Inf. GSH artifact	571.10092	9.794	neg	4	0.5
+Inf. GSH artifact	656.12205	9.877	neg	4	0.5
+Inf. GSH artifact	665.16949	9.785	neg	4	0.5
+Inf. GSH artifact	761.16542	9.793	neg	4	0.5
+Inf. GSH artifact	965.21714	9.891	neg	4	0.5
+Inf. GSH artifact	970.19423	9.743	neg	4	0.5
