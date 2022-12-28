@@ -12,8 +12,8 @@ class PeakData:
         self.name = name
         self.hydrogen_mass = 1.007825031898
         self.electron_mass = 5.485799e-4
-        self.sample_info = sample_info
-        self.params = params
+        self.sample_info = self._cp.deepcopy(sample_info)
+        self.params = self._cp.deepcopy(params)
         # Dummy for peak data:
         self.peak_data_pos = None
         self.peak_data_neg = None
@@ -716,7 +716,9 @@ Merged closely related peaks: {}\n\
         return(isotope_list)
 
     # Find blacklisted compounds for peak pairs according to polarity:
-    def flag_blacklist(self, blacklist_dict, polarity='both'):
+    def flag_blacklist(self, blacklist_fnam, polarity='both'):
+        # Turn the tsv file into a dictionary:
+        blacklist_dict = make_blacklist_dict(blacklist_fnam)
         for label in sorted(self.labels):
             if polarity in ['pos', 'both']:
                 # Find blacklisted compounds:
@@ -818,17 +820,17 @@ Merged closely related peaks: {}\n\
                 label_flags_corr_sorted = [t[0] for t in sorted(zip(label_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(10, "Labels", label_flags_corr_sorted)
+                    self.label_pairs[label]['pos']['peak_pair_area_parent'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['pos']['peak_pair_labelp'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['pos']['area_ratio_mask'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['pos']['peak_pair_corr'].insert(10, "Label_set", label_flags_corr_sorted)
                 except ValueError: # Column already exists
-                    self.label_pairs[label]['pos']['peak_pair_area_parent']["Labels"] = label_flags
-                    self.label_pairs[label]['pos']['peak_pair_area_heavy']["Labels"] = label_flags
-                    self.label_pairs[label]['pos']['peak_pair_labelp']["Labels"] = label_flags
-                    self.label_pairs[label]['pos']['area_ratio_mask']["Labels"] = label_flags
-                    self.label_pairs[label]['pos']['peak_pair_corr']["Labels"] = label_flags_corr_sorted
+                    self.label_pairs[label]['pos']['peak_pair_area_parent']["Label_set"] = label_flags
+                    self.label_pairs[label]['pos']['peak_pair_area_heavy']["Label_set"] = label_flags
+                    self.label_pairs[label]['pos']['peak_pair_labelp']["Label_set"] = label_flags
+                    self.label_pairs[label]['pos']['area_ratio_mask']["Label_set"] = label_flags
+                    self.label_pairs[label]['pos']['peak_pair_corr']["Label_set"] = label_flags_corr_sorted
 
         if polarity in ['neg', 'both']:
             # Assign a set of labels to all the parent peaks:
@@ -849,17 +851,17 @@ Merged closely related peaks: {}\n\
                 label_flags_corr_sorted = [t[0] for t in sorted(zip(label_flags, corr_sort_order), key=lambda x: x[1])]
                 try:
                     # Insert them as flags in pair dataframe:
-                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(10, "Labels", label_flags)
-                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(10, "Labels", label_flags_corr_sorted)
+                    self.label_pairs[label]['neg']['peak_pair_area_parent'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['neg']['peak_pair_labelp'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['neg']['area_ratio_mask'].insert(10, "Label_set", label_flags)
+                    self.label_pairs[label]['neg']['peak_pair_corr'].insert(10, "Label_set", label_flags_corr_sorted)
                 except ValueError: # Column already exists
-                    self.label_pairs[label]['neg']['peak_pair_area_parent']["Labels"] = label_flags
-                    self.label_pairs[label]['neg']['peak_pair_area_heavy']["Labels"] = label_flags
-                    self.label_pairs[label]['neg']['peak_pair_labelp']["Labels"] = label_flags
-                    self.label_pairs[label]['neg']['area_ratio_mask']["Labels"] = label_flags
-                    self.label_pairs[label]['neg']['peak_pair_corr']["Labels"] = label_flags_corr_sorted
+                    self.label_pairs[label]['neg']['peak_pair_area_parent']["Label_set"] = label_flags
+                    self.label_pairs[label]['neg']['peak_pair_area_heavy']["Label_set"] = label_flags
+                    self.label_pairs[label]['neg']['peak_pair_labelp']["Label_set"] = label_flags
+                    self.label_pairs[label]['neg']['area_ratio_mask']["Label_set"] = label_flags
+                    self.label_pairs[label]['neg']['peak_pair_corr']["Label_set"] = label_flags_corr_sorted
 
         if polarity not in ['pos', 'neg', 'both']:
             raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
@@ -1144,10 +1146,13 @@ class Isotopes:
                         raise Exception('Wrong formatting of formula string: {}.\nEither start with bracket and the nominal mass, or an element abbreviation.'.format(element))
                         
                     if split_element[1] != '':
-                        N = split_element[1]
+                        try:
+                            N = float(split_element[1])
+                        except ValueError: # symbol not done
+                            continue
                     else:
                         N = 1
-                    total_mass += float(N) * self.isotope_info[symbol]['most_abundant']['mass']
+                    total_mass += N * self.isotope_info[symbol]['most_abundant']['mass']
 
                 # Bracket means we need to parse the isotope nominal mass:
                 elif symbol in element and '[' == element[0]:
@@ -1159,11 +1164,14 @@ class Isotopes:
                     except:
                          raise Exception('Could not read the input formula: {}\nPlease check formating.'.format(element))
                     if split_element[1] != '':
-                        N = split_element[1]
+                        try:
+                            N = float(split_element[1])
+                        except ValueError: # symbol not done
+                            continue
                     else:
                         N = 1
                     try:
-                        total_mass += float(N) * self.isotope_info[symbol][nominal_mass]['mass']
+                        total_mass += N * self.isotope_info[symbol][nominal_mass]['mass']
                     except KeyError:
                         raise Exception('Could not find the nominal mass of {} for this element ({}), please check the input formula: {}'.format(nominal_mass, symbol, element))
 
