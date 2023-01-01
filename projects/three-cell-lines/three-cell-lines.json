@@ -1,0 +1,487 @@
+# In this JSON file, define descriptive sample names for each of the area columns 
+# in the input Excel file. E.g. the column name "Area: KD031720_031720_blank_s4.raw (F1)"
+# could simply be named "blank"
+# Any unique string in the column name will be sufficient for mapping.
+# The order will be used to sort the area columns in the output file.
+# The type can either be "sample" or "blank".
+# Blanks are used in peak filtering.
+# The label tag is used to indicate which isotopically labeled compound
+# was used in that sample.
+{
+"GSH_conjugates_sample_pos_01": {
+	"name": "B16_vec_1",
+	"order": 1,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, Vehicle"
+},
+"GSH_conjugates_sample_pos_02": {
+	"name": "B16_BSO_1",
+	"order": 7,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO"
+},
+"GSH_conjugates_sample_pos_04": {
+	"name": "B16_Cys_1",
+	"order": 3,
+	"type": "sample",
+	"label": "cys",
+	"group": "B16F10, Cys"
+},
+"GSH_conjugates_sample_pos_06": {
+	"name": "B16_Gln_1",
+	"order": 5,
+	"type": "sample",
+	"label": "gln",
+	"group": "B16F10, Gln"
+},
+"GSH_conjugates_sample_pos_07": {
+	"name": "B16_BSO_GSH-AB_1",
+	"order": 9,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO+addback"
+},
+"GSH_conjugates_sample_pos_08": {
+	"name": "B16_vec_2",
+	"order": 2,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, Vehicle"
+},
+"GSH_conjugates_sample_pos_09": {
+	"name": "B16_BSO_2",
+	"order": 8,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO"
+},
+"GSH_conjugates_sample_pos_11": {
+	"name": "B16_Cys_2",
+	"order": 4,
+	"type": "sample",
+	"label": "cys",
+	"group": "B16F10, Cys"
+},
+"GSH_conjugates_sample_pos_13": {
+	"name": "B16_Gln_2",
+	"order": 6,
+	"type": "sample",
+	"label": "gln",
+	"group": "B16F10, Gln"
+},
+"GSH_conjugates_sample_pos_14": {
+	"name": "B16_BSO_GSH-AB_2",
+	"order": 10,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO+addback"
+},
+"GSH_conjugates_sample_pos_15": {
+	"name": "HCT116_vec_1",
+	"order": 11,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, Vehicle"
+},
+"GSH_conjugates_sample_pos_16": {
+	"name": "HCT116_BSO_1",
+	"order": 17,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO"
+},
+"GSH_conjugates_sample_pos_18": {
+	"name": "HCT116_Cys_1",
+	"order": 13,
+	"type": "sample",
+	"label": "cys",
+	"group": "HCT116, Cys"
+},
+"GSH_conjugates_sample_pos_20": {
+	"name": "HCT116_Gln_1",
+	"order": 15,
+	"type": "sample",
+	"label": "gln",
+	"group": "HCT116, Gln"
+},
+"GSH_conjugates_sample_pos_21": {
+	"name": "HCT116_BSO_GSH-AB_1",
+	"order": 19,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO+addback"
+},
+"GSH_conjugates_sample_pos_22": {
+	"name": "HCT116_vec_2",
+	"order": 12,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, Vehicle"
+},
+"GSH_conjugates_sample_pos_23": {
+	"name": "HCT116_BSO_2",
+	"order": 18,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO"
+},
+"GSH_conjugates_sample_pos_25": {
+	"name": "HCT116_Cys_2",
+	"order": 14,
+	"type": "sample",
+	"label": "cys",
+	"group": "HCT116, Cys"
+},
+"GSH_conjugates_sample_pos_27": {
+	"name": "HCT116_Gln_2",
+	"order": 16,
+	"type": "sample",
+	"label": "gln",
+	"group": "HCT116, Gln"
+},
+"GSH_conjugates_sample_pos_28": {
+	"name": "HCT116_BSO_GSH-AB_2",
+	"order": 20,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO+addback"
+},
+"GSH_conjugates_sample_pos_29": {
+	"name": "HUH7_vec_1",
+	"order": 21,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, Vehicle"
+},
+"GSH_conjugates_sample_pos_30": {
+	"name": "HUH7_BSO_1",
+	"order": 27,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO"
+},
+"GSH_conjugates_sample_pos_32": {
+	"name": "HUH7_Cys_1",
+	"order": 23,
+	"type": "sample",
+	"label": "cys",
+	"group": "HUH7, Cys"
+},
+"GSH_conjugates_sample_pos_34": {
+	"name": "HUH7_Gln_1",
+	"order": 25,
+	"type": "sample",
+	"label": "gln",
+	"group": "HUH7, Gln"
+},
+"GSH_conjugates_sample_pos_35": {
+	"name": "HUH7_BSO_GSH-AB_1",
+	"order": 29,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO+addback"
+},
+"GSH_conjugates_sample_pos_36": {
+	"name": "HUH7_vec_2",
+	"order": 22,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, Vehicle"
+},
+"GSH_conjugates_sample_pos_37": {
+	"name": "HUH7_BSO_2",
+	"order": 28,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO"
+},
+"GSH_conjugates_sample_pos_39": {
+	"name": "HUH7_Cys_2",
+	"order": 24,
+	"type": "sample",
+	"label": "cys",
+	"group": "HUH7, Cys"
+},
+"GSH_conjugates_sample_pos_41": {
+	"name": "HUH7_Gln_2",
+	"order": 26,
+	"type": "sample",
+	"label": "gln",
+	"group": "HUH7, Gln"
+},
+"GSH_conjugates_sample_pos_42": {
+	"name": "HUH7_BSO_GSH-AB_2",
+	"order": 30,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO+addback"
+},
+"GSH_conjugates_sample_neg_01": {
+	"name": "B16_vec_1",
+	"order": 1,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, Vehicle"
+},
+"GSH_conjugates_sample_neg_02": {
+	"name": "B16_BSO_1",
+	"order": 7,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO"
+},
+"GSH_conjugates_sample_neg_04": {
+	"name": "B16_Cys_1",
+	"order": 3,
+	"type": "sample",
+	"label": "cys",
+	"group": "B16F10, Cys"
+},
+"GSH_conjugates_sample_neg_06": {
+	"name": "B16_Gln_1",
+	"order": 5,
+	"type": "sample",
+	"label": "gln",
+	"group": "B16F10, Gln"
+},
+"GSH_conjugates_sample_neg_07": {
+	"name": "B16_BSO_GSH-AB_1",
+	"order": 9,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO+addback"
+},
+"GSH_conjugates_sample_neg_08": {
+	"name": "B16_vec_2",
+	"order": 2,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, Vehicle"
+},
+"GSH_conjugates_sample_neg_09": {
+	"name": "B16_BSO_2",
+	"order": 8,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO"
+},
+"GSH_conjugates_sample_neg_11": {
+	"name": "B16_Cys_2",
+	"order": 4,
+	"type": "sample",
+	"label": "cys",
+	"group": "B16F10, Cys"
+},
+"GSH_conjugates_sample_neg_13": {
+	"name": "B16_Gln_2",
+	"order": 6,
+	"type": "sample",
+	"label": "gln",
+	"group": "B16F10, Gln"
+},
+"GSH_conjugates_sample_neg_14": {
+	"name": "B16_BSO_GSH-AB_2",
+	"order": 10,
+	"type": "sample",
+	"label": "None",
+	"group": "B16F10, BSO+addback"
+},
+"GSH_conjugates_sample_neg_15": {
+	"name": "HCT116_vec_1",
+	"order": 11,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, Vehicle"
+},
+"GSH_conjugates_sample_neg_16": {
+	"name": "HCT116_BSO_1",
+	"order": 17,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO"
+},
+"GSH_conjugates_sample_neg_18": {
+	"name": "HCT116_Cys_1",
+	"order": 13,
+	"type": "sample",
+	"label": "cys",
+	"group": "HCT116, Cys"
+},
+"GSH_conjugates_sample_neg_20": {
+	"name": "HCT116_Gln_1",
+	"order": 15,
+	"type": "sample",
+	"label": "gln",
+	"group": "HCT116, Gln"
+},
+"GSH_conjugates_sample_neg_21": {
+	"name": "HCT116_BSO_GSH-AB_1",
+	"order": 19,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO+addback"
+},
+"GSH_conjugates_sample_neg_22": {
+	"name": "HCT116_vec_2",
+	"order": 12,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, Vehicle"
+},
+"GSH_conjugates_sample_neg_23": {
+	"name": "HCT116_BSO_2",
+	"order": 18,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO"
+},
+"GSH_conjugates_sample_neg_25": {
+	"name": "HCT116_Cys_2",
+	"order": 14,
+	"type": "sample",
+	"label": "cys",
+	"group": "HCT116, Cys"
+},
+"GSH_conjugates_sample_neg_27": {
+	"name": "HCT116_Gln_2",
+	"order": 16,
+	"type": "sample",
+	"label": "gln",
+	"group": "HCT116, Gln"
+},
+"GSH_conjugates_sample_neg_28": {
+	"name": "HCT116_BSO_GSH-AB_2",
+	"order": 20,
+	"type": "sample",
+	"label": "None",
+	"group": "HCT116, BSO+addback"
+},
+"GSH_conjugates_sample_neg_29": {
+	"name": "HUH7_vec_1",
+	"order": 21,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, Vehicle"
+},
+"GSH_conjugates_sample_neg_30": {
+	"name": "HUH7_BSO_1",
+	"order": 27,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO"
+},
+"GSH_conjugates_sample_neg_32": {
+	"name": "HUH7_Cys_1",
+	"order": 23,
+	"type": "sample",
+	"label": "cys",
+	"group": "HUH7, Cys"
+},
+"GSH_conjugates_sample_neg_34": {
+	"name": "HUH7_Gln_1",
+	"order": 25,
+	"type": "sample",
+	"label": "gln",
+	"group": "HUH7, Gln"
+},
+"GSH_conjugates_sample_neg_35": {
+	"name": "HUH7_BSO_GSH-AB_1",
+	"order": 29,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO+addback"
+},
+"GSH_conjugates_sample_neg_36": {
+	"name": "HUH7_vec_2",
+	"order": 22,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, Vehicle"
+},
+"GSH_conjugates_sample_neg_37": {
+	"name": "HUH7_BSO_2",
+	"order": 28,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO"
+},
+"GSH_conjugates_sample_neg_39": {
+	"name": "HUH7_Cys_2",
+	"order": 24,
+	"type": "sample",
+	"label": "cys",
+	"group": "HUH7, Cys"
+},
+"GSH_conjugates_sample_neg_41": {
+	"name": "HUH7_Gln_2",
+	"order": 26,
+	"type": "sample",
+	"label": "gln",
+	"group": "HUH7, Gln"
+},
+"GSH_conjugates_sample_neg_42": {
+	"name": "HUH7_BSO_GSH-AB_2",
+	"order": 30,
+	"type": "sample",
+	"label": "None",
+	"group": "HUH7, BSO+addback"
+},
+"extraction-blank_pos_01": {
+	"name": "extr_blank",
+	"order": 31,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_01": {
+	"name": "sol_blank_1",
+	"order": 32,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_02": {
+	"name": "sol_blank_2",
+	"order": 33,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_03": {
+	"name": "sol_blank_3",
+	"order": 34,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"extraction-blank_neg_01": {
+	"name": "extr_blank",
+	"order": 31,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_01": {
+	"name": "sol_blank_1",
+	"order": 32,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_02": {
+	"name": "sol_blank_2",
+	"order": 33,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_03": {
+	"name": "sol_blank_3",
+	"order": 34,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+}
