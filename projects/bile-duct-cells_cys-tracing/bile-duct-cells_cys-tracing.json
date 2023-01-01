@@ -1,0 +1,382 @@
+# In this JSON file, define descriptive sample names for each of the area columns 
+# in the input Excel file. E.g. the column name "Area: KD031720_031720_blank_s4.raw (F1)"
+# could simply be named "blank"
+# Any unique string in the column name will be sufficient for mapping.
+# The order will be used to sort the area columns in the output file.
+# The type can either be "sample" or "blank".
+# Blanks are used in peak filtering.
+# The label tag is used to indicate which isotopically labeled compound
+# was used in that sample.
+{
+"AV040821_040821_AV04": {
+	"name": "CCLP_1",
+	"order": 19,
+	"type": "sample",
+	"label": "cys",
+	"group": "CCLP, bile-duct-NRF2-off"
+},
+"AV040821_040821_AV05": {
+	"name": "CCLP_2",
+	"order": 20,
+	"type": "sample",
+	"label": "cys",
+	"group": "CCLP, bile-duct-NRF2-off"
+},
+"AV040821_040821_AV06": {
+	"name": "CCLP_3",
+	"order": 21,
+	"type": "sample",
+	"label": "cys",
+	"group": "CCLP, bile-duct-NRF2-off"
+},
+"AV040821_040821_AV10": {
+	"name": "SSP25_1",
+	"order": 7,
+	"type": "sample",
+	"label": "cys",
+	"group": "SSP25, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV11": {
+	"name": "SSP25_2",
+	"order": 8,
+	"type": "sample",
+	"label": "cys",
+	"group": "SSP25, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV12": {
+	"name": "SSP25_3",
+	"order": 9,
+	"type": "sample",
+	"label": "cys",
+	"group": "SSP25, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV16": {
+	"name": "TFK_1",
+	"order": 10,
+	"type": "sample",
+	"label": "cys",
+	"group": "TFK, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV17": {
+	"name": "TFK_2",
+	"order": 11,
+	"type": "sample",
+	"label": "cys",
+	"group": "TFK, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV18": {
+	"name": "TFK_3",
+	"order": 12,
+	"type": "sample",
+	"label": "cys",
+	"group": "TFK, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV22": {
+	"name": "ICC2_1",
+	"order": 25,
+	"type": "sample",
+	"label": "cys",
+	"group": "ICC2, bile-duct-other"
+},
+"AV040821_040821_AV23": {
+	"name": "ICC2_2",
+	"order": 26,
+	"type": "sample",
+	"label": "cys",
+	"group": "ICC2, bile-duct-other"
+},
+"AV040821_040821_AV24": {
+	"name": "ICC2_3",
+	"order": 27,
+	"type": "sample",
+	"label": "cys",
+	"group": "ICC2, bile-duct-other"
+},
+"AV040821_040821_AV28": {
+	"name": "TGBC_1",
+	"order": 28,
+	"type": "sample",
+	"label": "cys",
+	"group": "TGBC, bile-duct-other"
+},
+"AV040821_040821_AV29": {
+	"name": "TGBC_2",
+	"order": 29,
+	"type": "sample",
+	"label": "cys",
+	"group": "TGBC, bile-duct-other"
+},
+"AV040821_040821_AV30": {
+	"name": "TGBC_3",
+	"order": 30,
+	"type": "sample",
+	"label": "cys",
+	"group": "TGBC, bile-duct-other"
+},
+"AV040821_040821_AV34": {
+	"name": "OCUG1_1",
+	"order": 13,
+	"type": "sample",
+	"label": "cys",
+	"group": "OCUG1, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV35": {
+	"name": "OCUG1_2",
+	"order": 14,
+	"type": "sample",
+	"label": "cys",
+	"group": "OCUG1, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV36": {
+	"name": "OCUG1_3",
+	"order": 15,
+	"type": "sample",
+	"label": "cys",
+	"group": "OCUG1, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV40": {
+	"name": "SNU308_1",
+	"order": 4,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV41": {
+	"name": "SNU308_2",
+	"order": 5,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV42": {
+	"name": "SNU308_3",
+	"order": 6,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV46": {
+	"name": "KKU100_1",
+	"order": 1,
+	"type": "sample",
+	"label": "cys",
+	"group": "KKU100, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV47": {
+	"name": "KKU100_2",
+	"order": 2,
+	"type": "sample",
+	"label": "cys",
+	"group": "KKU100, bile-duct-NRF2-on"
+},
+"AV040821_040821_AV48": {
+	"name": "KKU100_3",
+	"order": 3,
+	"type": "sample",
+	"label": "cys",
+	"group": "KKU100, bile-duct-NRF2-on"
+},
+"AV040821_041221_AV52": {
+	"name": "YSCCC_1",
+	"order": 16,
+	"type": "sample",
+	"label": "cys",
+	"group": "YSCCC, bile-duct-NRF2-off"
+},
+"AV040821_041221_AV53": {
+	"name": "YSCCC_2",
+	"order": 17,
+	"type": "sample",
+	"label": "cys",
+	"group": "YSCCC, bile-duct-NRF2-off"
+},
+"AV040821_041221_AV54": {
+	"name": "YSCCC_3",
+	"order": 18,
+	"type": "sample",
+	"label": "cys",
+	"group": "YSCCC, bile-duct-NRF2-off"
+},
+"AV040821_041221_AV58": {
+	"name": "RBE_1",
+	"order": 22,
+	"type": "sample",
+	"label": "cys",
+	"group": "RBE, bile-duct-NRF2-off"
+},
+"AV040821_041221_AV59": {
+	"name": "RBE_2",
+	"order": 23,
+	"type": "sample",
+	"label": "cys",
+	"group": "RBE, bile-duct-NRF2-off"
+},
+"AV040821_041221_AV60": {
+	"name": "RBE_3",
+	"order": 24,
+	"type": "sample",
+	"label": "cys",
+	"group": "RBE, bile-duct-NRF2-off"
+},
+"AV040821_041221_AV64": {
+	"name": "SNU1196_1",
+	"order": 31,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU1196, bile-duct-other"
+},
+"AV040821_041221_AV65": {
+	"name": "SNU1196_2",
+	"order": 32,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU1196, bile-duct-other"
+},
+"AV040821_041221_AV66": {
+	"name": "SNU1196_3",
+	"order": 33,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU1196, bile-duct-other"
+},
+"AV040821_041221_AV70": {
+	"name": "UOK262_1",
+	"order": 34,
+	"type": "sample",
+	"label": "cys",
+	"group": "UOK262, Other-NRF2-on"
+},
+"AV040821_041221_AV71": {
+	"name": "UOK262_2",
+	"order": 35,
+	"type": "sample",
+	"label": "cys",
+	"group": "UOK262, Other-NRF2-on"
+},
+"AV040821_041221_AV72": {
+	"name": "UOK262_3",
+	"order": 36,
+	"type": "sample",
+	"label": "cys",
+	"group": "UOK262, Other-NRF2-on"
+},
+"AV040821_041221_AV76": {
+	"name": "A549_1",
+	"order": 37,
+	"type": "sample",
+	"label": "cys",
+	"group": "A549, Other-NRF2-on"
+},
+"AV040821_041221_AV77": {
+	"name": "A549_2",
+	"order": 38,
+	"type": "sample",
+	"label": "cys",
+	"group": "A549, Other-NRF2-on"
+},
+"AV040821_041221_AV78": {
+	"name": "A549_3",
+	"order": 39,
+	"type": "sample",
+	"label": "cys",
+	"group": "A549, Other-NRF2-on"
+},
+"NRF2-const_dox_1": {
+	"name": "NRF2-const_dox_1",
+	"order": 40,
+	"type": "sample",
+	"label": "cys",
+	"group": "NRF2-const, Dox"
+},
+"NRF2-const_dox_2": {
+	"name": "NRF2-const_dox_2",
+	"order": 41,
+	"type": "sample",
+	"label": "cys",
+	"group": "NRF2-const, Dox"
+},
+"NRF2-const_dox_3": {
+	"name": "NRF2-const_dox_3",
+	"order": 42,
+	"type": "sample",
+	"label": "cys",
+	"group": "NRF2-const, Dox"
+},
+"NRF2-const_vec_1": {
+	"name": "NRF2-const_vec_1",
+	"order": 43,
+	"type": "sample",
+	"label": "cys",
+	"group": "NRF2-const, Vehicle"
+},
+"NRF2-const_vec_2": {
+	"name": "NRF2-const_vec_2",
+	"order": 44,
+	"type": "sample",
+	"label": "cys",
+	"group": "NRF2-const, Vehicle"
+},
+"NRF2-const_vec_3": {
+	"name": "NRF2-const_vec_3",
+	"order": 45,
+	"type": "sample",
+	"label": "cys",
+	"group": "NRF2-const, Vehicle"
+},
+"extraction-blank_neg_01": {
+	"name": "extr_blank",
+	"order": 46,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_01": {
+	"name": "sol_blank_1",
+	"order": 47,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_02": {
+	"name": "sol_blank_2",
+	"order": 48,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_03": {
+	"name": "sol_blank_3",
+	"order": 49,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"extraction-blank_pos_01": {
+	"name": "extr_blank",
+	"order": 46,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_01": {
+	"name": "sol_blank_1",
+	"order": 47,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_02": {
+	"name": "sol_blank_2",
+	"order": 48,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_03": {
+	"name": "sol_blank_3",
+	"order": 49,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+}

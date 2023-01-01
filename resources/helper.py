@@ -226,7 +226,6 @@ Merged closely related peaks: {}\n\
         that have a matching known compound in
         the input list.
         '''
-
         df_known = self._pd.read_csv(known_fnam, sep='\t')
         # Convert the "Formula" column to an exact mass:
         df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
