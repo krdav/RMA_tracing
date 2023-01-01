@@ -1,0 +1,40 @@
+Name	Label	Formula	RT	MW_ppm_tol	RT_tol
+Chlorambucil GSH	m	C24 H35 Cl N4 O8 S	10	5	10
+Chlorambucil GSH	m+4	C21 [13]C3 H35 Cl N3 [15]N O8 S	10	5	10
+Chlorambucil 2xGSH	m	C34 H51 N7 O14 S2	10	5	10
+Chlorambucil 2xGSH	m+4	C31 [13]C3 H51 N6 [15]N O14 S2	10	5	10
+Melphalan GSH	m	C23 H34 Cl N5 O8 S	10	5	10
+Melphalan GSH	m+4	C20 [13]C3 H34 Cl N4 [15]N O8 S	10	5	10
+Melphalan 2xGSH	m	C33 H50 N8 O14 S2	10	5	10
+Melphalan 2xGSH	m+4	C30 [13]C3 H50 N7 [15]N O14 S2	10	5	10
+Thiotepa GSH	m	C16 H29 N6 O6 P S2	6.684	5	1
+Thiotepa GSH	m+4	C13 [13]C3 H29 N5 [15]N O6 P S2	6.684	5	1
+Thiotepa 2xGSH	m	C26 H46 N9 O12 P S3	10	5	10
+Thiotepa 2xGSH	m+4	C23 [13]C3 H46 N8 [15]N O12 P S3	10	5	10
+Thiotepa 3xGSH	m	C36 H63 N12 O18 P S4	10	5	10
+Thiotepa 3xGSH	m+4	C33 [13]C3 H63 N11 [15]N O18 P S4	10	5	10
+Thiotepa Cys	m	C9 H19 N4 O2 P S2	5.162	5	1
+Thiotepa Cys	m+4	C6 [13]C3 H19 N3 [15]N O2 P S2	5.162	5	1
+Thiotepa NAC	m	C11 H21 N4 O3 P S2	10	5	10
+Thiotepa NAC	m+4	C8 [13]C3 H21 N3 [15]N O3 P S2	10	5	10
+GSH aziridine (Thiotepa)	m	C12 H22 N4 O6 S1	11.549	5	1
+GSH aziridine (Thiotepa)	m+4	C9 [13]C H22 N3 [15]N O6 S1	11.549	5	1
+Cys aziridine (Thiotepa)	m	C5 H12 N2 O2 S	10	5	10
+Cys aziridine (Thiotepa)	m+4	C2 [13]C3 H12 N [15]N O2 S	10	5	10
+NAC aziridine (Thiotepa)	m	C7 H14 N2 O3 S	10	5	10
+NAC aziridine (Thiotepa)	m+4	C4 [13]C3 H14 N [15]N O3 S	10	5	10
+CEIC GSH (Carmustine)	m	C13 H21 Cl N4 O7 S	7.962	5	1
+CEIC GSH (Carmustine)	m+4	C10 [13]C3 H21 Cl N3 [15]N O7 S	7.962	5	1
+CEIC GSH fragment	m	C10 H17 N3 O6 S	7.962	5	1
+CEIC GSH fragment	m+4	C7 [13]C3 H17 N2 [15]N O6 S	7.962	5	1
+CEIC GSH fragment 2	m	C6 H10 N2 O3 S	7.962	5	1
+CEIC GSH fragment 2	m+4	C3 [13]C3 H10 N [15]N O3 S	7.962	5	1
+CEIC Cys (Carmustine)	m	C6 H11 Cl N2 O3 S	5.856	5	1
+CEIC Cys (Carmustine)	m+4	C3 [13]C3 H11 Cl N [15]N O3 S	5.856	5	1
+CEIC Cys fragment	m	C3 H7 N O2 S	5.856	5	1
+CEIC Cys fragment	m+4	[13]C3 H7 [15]N O2 S	5.856	5	1
+CEIC NAC (Carmustine)	m	C8 H13 Cl N2 O4 S	10	5	10
+CEIC NAC (Carmustine)	m+4	C5 [13]C3 H13 Cl N [15]N O4 S	10	5	10
+Temozolomide artifact	m	C4 H5 N3 O2	6.269	5	1
+Timonacic	m	C4 H7 N O2 S	5.357000	5	2
+Timonacic	m+4	C [13]C3 H7 [15]N O2 S	5.357000	5	2
