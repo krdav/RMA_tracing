@@ -1,0 +1,170 @@
+{
+"KD031720_031720_BD_C01": {
+	"name": "SNU308+Vec_1",
+	"order": 1,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Vehicle"
+},
+"KD031720_031720_BD_C02": {
+	"name": "SNU308+Vec_2",
+	"order": 2,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Vehicle"
+},
+"KD031720_031720_AS_C01": {
+	"name": "SNU308+TEPA",
+	"order": 3,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Thiotepa"
+},
+"KD031720_031720_AS_C02": {
+	"name": "SNU308+Temo",
+	"order": 5,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Temozolomide"
+},
+"KD031720_031720_AS_C03": {
+	"name": "SNU308+Alt",
+	"order": 7,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Altretamine"
+},
+"KD031720_031720_AS_C04": {
+	"name": "SNU308+Carm",
+	"order": 9,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Carmustine"
+},
+"KD031720_031720_AS_C05": {
+	"name": "SNU308+Mel",
+	"order": 11,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Melphalan"
+},
+"KD031720_031720_AS_C06": {
+	"name": "SNU308+Chlor",
+	"order": 13,
+	"type": "sample",
+	"label": "cys",
+	"group": "SNU308, Chlorambucil"
+},
+"KD031720_031720_AB_C01": {
+	"name": "143B+TEPA",
+	"order": 4,
+	"type": "sample",
+	"label": "cys",
+	"group": "143B, Thiotepa"
+},
+"KD031720_031720_AB_C02": {
+	"name": "143B+Temo",
+	"order": 6,
+	"type": "sample",
+	"label": "cys",
+	"group": "143B, Temozolomide"
+},
+"KD031720_031720_AB_C03": {
+	"name": "143B+Alt",
+	"order": 8,
+	"type": "sample",
+	"label": "cys",
+	"group": "143B, Altretamine"
+},
+"KD031720_031720_AB_C04": {
+	"name": "143B+Carm",
+	"order": 10,
+	"type": "sample",
+	"label": "cys",
+	"group": "143B, Carmustine"
+},
+"KD031720_031720_AB_C05": {
+	"name": "143B+Mel",
+	"order": 12,
+	"type": "sample",
+	"label": "cys",
+	"group": "143B, Melphalan"
+},
+"KD031720_031720_AB_C06": {
+	"name": "143B+Chlor",
+	"order": 14,
+	"type": "sample",
+	"label": "cys",
+	"group": "143B, Chlorambucil"
+},
+"extraction-blank_pos_01": {
+	"name": "extr_blank",
+	"order": 15,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_01": {
+	"name": "sol_blank_1",
+	"order": 16,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_02": {
+	"name": "sol_blank_2",
+	"order": 17,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_pos_03": {
+	"name": "sol_blank_3",
+	"order": 18,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"extraction-blank_neg_01": {
+	"name": "extr_blank",
+	"order": 15,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_01": {
+	"name": "sol_blank_1",
+	"order": 16,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_02": {
+	"name": "sol_blank_2",
+	"order": 17,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_neg_03": {
+	"name": "sol_blank_3",
+	"order": 18,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_switching_1": {
+	"name": "sol_blank_4",
+	"order": 19,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+"solvent-blank_switching_2": {
+	"name": "sol_blank_5",
+	"order": 20,
+	"type": "blank",
+	"label": "None",
+	"group": "blank"
+},
+}
