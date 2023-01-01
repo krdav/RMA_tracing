@@ -1,3 +1,12 @@
+# In this JSON file, define descriptive sample names for each of the area columns 
+# in the input Excel file. E.g. the column name "Area: KD031720_031720_blank_s4.raw (F1)"
+# could simply be named "blank"
+# Any unique string in the column name will be sufficient for mapping.
+# The order will be used to sort the area columns in the output file.
+# The type can either be "sample" or "blank".
+# Blanks are used in peak filtering.
+# The label tag is used to indicate which isotopically labeled compound
+# was used in that sample.
 {
 "KD031720_031720_BD_C01": {
 	"name": "SNU308+Vec_1",

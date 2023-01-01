@@ -18,8 +18,8 @@ R5P Cys	m	C8 H15 N O6 S	8.805	5	4
 R5P Cys	m+4	C5 [13]C3 H15 [15]N O6 S	8.805	5	4
 G3P Cys	m	C6 H11 N O4 S	7.718	5	4
 G3P Cys	m+4	C3 [13]C3 H11 [15]N O4 S	7.718	5	4
-Cysteine	m	C3 H7 N O2 S	8.619	5	4
-Cysteine	m+4	[13]C3 H7 [15]N O2 S	8.619	5	4
+Cysteine	m	C3 H7 N O2 S	8.619	5	1
+Cysteine	m+4	[13]C3 H7 [15]N O2 S	8.619	5	1
 DHAP Cys	m	C6 H11 N O4 S	7.274	5	4
 DHAP Cys	m+4	C3 [13]C3 H11 [15]N O4 S	7.274	5	4
 G6P Cys	m	C9 H17 N O7 S	9.47	5	4
