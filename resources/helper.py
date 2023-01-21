@@ -1,19 +1,16 @@
 import pandas as pd
 import numpy as np
-import copy
+import copy as cp
+import warnings
+
 
 class PeakData:
-    import pandas as _pd
-    import numpy as _np
-    import random as _rd
-    import copy as _cp
-
     def __init__(self, name, sample_info, params):
         self.name = name
         self.hydrogen_mass = 1.007825031898
         self.electron_mass = 5.485799e-4
-        self.sample_info = self._cp.deepcopy(sample_info)
-        self.params = self._cp.deepcopy(params)
+        self.sample_info = cp.deepcopy(sample_info)
+        self.params = cp.deepcopy(params)
         # Dummy for peak data:
         self.peak_data_pos = None
         self.peak_data_neg = None
@@ -25,8 +22,10 @@ class PeakData:
         # tables related to the peak pair from that label:
         self.labels = {self.sample_info[sample]['label'] for sample in self.sample_info if self.sample_info[sample]['type'] != 'blank' and self.sample_info[sample]['label'] != 'None'}
         self.sample_label = dict()
+        self.labelled_names = set()
         for label in self.labels:
             self.sample_label[label] = [self.sample_info[sample]['name'] for sample in self.sample_info if self.sample_info[sample]['label'] == label and self.sample_info[sample]['type'] != 'blank']
+            self.labelled_names = self.labelled_names.union(self.sample_label[label])
 
         self.label_pairs = dict()
         # Iterate over labels:
@@ -42,7 +41,7 @@ class PeakData:
                 self.label_pairs[label][polarity]['peak_pair_corr'] = None # Matrix with accross sample correlation coefficients between peak areas
 
     # Read peak data according to polarity:
-    def read_peaks(self, datafile, polarity, drop_blank=True):
+    def read_peaks(self, datafile, polarity):
         if polarity == 'pos':
             self.peak_data_pos, self.area_colnames_pos = self.__peak_reader(datafile, polarity)
         elif polarity == 'neg':
@@ -52,7 +51,7 @@ class PeakData:
 
     # Internal function to read peaks in either polarity:
     def __peak_reader(self, datafile, polarity):
-        csv = self._pd.read_excel(datafile)
+        csv = pd.read_excel(datafile)
         csv.columns = [n.lower().replace(' ', '_') for n in csv.columns]
         # Assert that weight and retention time can be used as unique identifier:
         wr_list = [(w, r) for w, r, in zip(csv['molecular_weight'], csv['rt_[min]'])]
@@ -60,7 +59,7 @@ class PeakData:
         # Insert (MW, RT) as peak ID into the dataframe:
         csv.insert(0, 'MW', csv['molecular_weight'])
         csv.insert(0, 'RT', csv['rt_[min]'])
-        csv.insert(0, 'peak_id', self._pd.Series(wr_list, index=csv.index))
+        csv.insert(0, 'peak_id', pd.Series(wr_list, index=csv.index))
         # Extract the columns with area information:
         col_sele = ['peak_id', 'RT', 'MW', 'name']
         col_sele.extend([col for col in csv.columns if 'area' in col])
@@ -99,7 +98,7 @@ class PeakData:
 
         # Filter peak dataframe:
         print('Running peak filtering for polarity: {}'.format(polarity))
-        peak_data = self.__run_all_peak_filters(peak_data, sample_area_colnames, blank_area_colnames, self.params)
+        peak_data = self.__run_all_peak_filters(peak_data, sample_area_colnames, blank_area_colnames)
 
         # Drop blank peak areas, then sort peak areas columns
         # for samples using join:
@@ -112,13 +111,13 @@ class PeakData:
         return(peak_data, sample_area_colnames)
 
     # Apply all filters on the peak data:
-    def __run_all_peak_filters(self, peak_data, sample_area_colnames, blank_area_colnames, params):
+    def __run_all_peak_filters(self, peak_data, sample_area_colnames, blank_area_colnames):
         '''
         Function to run sequential filtering on peaks.
         '''
         count_before = len(peak_data)
         # Min area filter:
-        peak_data = self.min_area_peak_filter(peak_data, sample_area_colnames, self.params['min_area'])
+        peak_data = self.min_area_peak_filter(peak_data, sample_area_colnames)
         N_min_area = count_before - len(peak_data)
         # Min MW filter:
         peak_data = self.min_MW_peak_filter(peak_data, self.params['min_MW'])
@@ -141,14 +140,20 @@ Merged closely related peaks: {}\n\
         return(peak_data)
 
     # Filter peaks with area smaller than the cutoff:
-    def min_area_peak_filter(self, peak_data, area_colnames, min_area):
+    def min_area_peak_filter(self, peak_data, area_colnames):
         '''
         Enforce a minimum peak area.
         For a given peak the peak area at least one sample has to be above this value.
         '''
+        # Global minimum area:
         area_max = peak_data.loc[:, area_colnames].max(axis=1)
-        mask = (area_max > min_area)
-        return(peak_data[mask])
+        min_mask = (area_max > self.params['min_area'])
+        # Mininum area for any of the labelled samples:
+        labelled_columns = [cn for cn in area_colnames if cn in self.labelled_names]
+        area_max_label = peak_data.loc[:, labelled_columns].max(axis=1)
+        min_mask_label = (area_max_label > self.params['min_area_label'])
+
+        return(peak_data[min_mask&min_mask_label])
 
     # Filter peaks with molecular weight smaller than the cutoff:
     def min_MW_peak_filter(self, peak_data, min_MW):
@@ -203,8 +208,8 @@ Merged closely related peaks: {}\n\
         peak_data_area = peak_data.loc[:, ['merge'] + area_colnames].copy()
         peak_data_rest = peak_data.loc[:, ~peak_data.columns.isin(area_colnames)].copy()
         # Add the sum of area for each peak, as a way of sorting:
-        peak_data_rest['area_sum'] = peak_data_area.sum(axis=1).values
-            
+        peak_data_rest['area_sum'] = peak_data_area.sum(axis=1, numeric_only=True).values
+
         # Group dataframes by the merge column.
         # Take the sum of the areas to the merged:
         peak_data_area_grouped = peak_data_area.groupby('merge').sum().reset_index()
@@ -226,7 +231,7 @@ Merged closely related peaks: {}\n\
         that have a matching known compound in
         the input list.
         '''
-        df_known = self._pd.read_csv(known_fnam, sep='\t')
+        df_known = pd.read_csv(known_fnam, sep='\t')
         # Convert the "Formula" column to an exact mass:
         df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
 
@@ -257,12 +262,12 @@ Merged closely related peaks: {}\n\
             mask = RT_mask & MW_mask
             # Store annotations in index based dictionary:
             if mask.sum() > 0:
-                for j in self._np.where(mask)[0]:
+                for j in np.where(mask)[0]:
                     # If multiple known compounds are found,
                     # store the one with closest retention time:
                     if j in anno_dict:
-                        old_RT_diff = self._np.abs(anno_dict[j][1] - peak_data['RT'][j])
-                        new_RT_diff = self._np.abs(row['RT'] - peak_data['RT'][j])
+                        old_RT_diff = np.abs(anno_dict[j][1] - peak_data['RT'][j])
+                        new_RT_diff = np.abs(row['RT'] - peak_data['RT'][j])
                         if old_RT_diff > new_RT_diff:
                             anno_dict[j] = (row['Name'], row['RT'])
                     else:
@@ -286,10 +291,10 @@ Merged closely related peaks: {}\n\
                 MW_i = blacklist['pos'][peak]['MW']
                 RT_i = blacklist['pos'][peak]['RT']
                 # Retention time criterium:
-                RT_diff_mask = self._np.abs(RT_i - RT) <= blacklist['pos'][peak]['RT_tol']
+                RT_diff_mask = np.abs(RT_i - RT) <= blacklist['pos'][peak]['RT_tol']
                 # Mass shift criterium:
                 MW_tol = MW_i * 1e-6 * blacklist['pos'][peak]['MW_ppm_tol']
-                MW_diff_mask = self._np.abs(MW_i - MW) <= MW_tol
+                MW_diff_mask = np.abs(MW_i - MW) <= MW_tol
                 blacklist_mask = blacklist_mask & ~(RT_diff_mask & MW_diff_mask)
             self.peak_data_pos = self.peak_data_pos[blacklist_mask].reset_index(drop=True, inplace=False)
             count_after = len(self.peak_data_pos)
@@ -304,10 +309,10 @@ Merged closely related peaks: {}\n\
                 MW_i = blacklist['neg'][peak]['MW']
                 RT_i = blacklist['neg'][peak]['RT']
                 # Retention time criterium:
-                RT_diff_mask = self._np.abs(RT_i - RT) <= blacklist['neg'][peak]['RT_tol']
+                RT_diff_mask = np.abs(RT_i - RT) <= blacklist['neg'][peak]['RT_tol']
                 # Mass shift criterium:
                 MW_tol = MW_i * 1e-6 * blacklist['neg'][peak]['MW_ppm_tol']
-                MW_diff_mask = self._np.abs(MW_i - MW) <= MW_tol
+                MW_diff_mask = np.abs(MW_i - MW) <= MW_tol
                 blacklist_mask = blacklist_mask & ~(RT_diff_mask & MW_diff_mask)
             self.peak_data_neg = self.peak_data_neg[blacklist_mask].reset_index(drop=True, inplace=False)
             count_after = len(self.peak_data_neg)
@@ -346,12 +351,12 @@ Merged closely related peaks: {}\n\
             raise Exception('Polarity not valid: {}'.format(polarity))
 
 
-        df_known = self._pd.read_csv(known_fnam, sep='\t')
+        df_known = pd.read_csv(known_fnam, sep='\t')
         # Convert the "Formula" column to an exact mass:
         df_known['Mass'] = [formula2mass(f) for f in df_known['Formula']]
         known_compounds = sorted(list(set(df_known['Name'].values)))
         known_idx = [n + ' ({})'.format(f) for n, f in zip(df_known['Name'], df_known['Label'])]
-        perc_lab = self._pd.DataFrame(columns=area_colnames, index=known_idx)
+        perc_lab = pd.DataFrame(columns=area_colnames, index=known_idx)
 
         # For each compound:
         for compound in known_compounds:
@@ -392,9 +397,23 @@ Merged closely related peaks: {}\n\
     def find_pairs(self, polarity):
         for label in sorted(self.labels):            
             if polarity == 'pos':
-                self.label_pairs[label]['pos']['peak_pair_area_parent'], self.label_pairs[label]['pos']['peak_pair_area_heavy'], self.label_pairs[label]['pos']['peak_pair_labelp'], self.label_pairs[label]['pos']['area_ratio_mask'], self.label_pairs[label]['pos']['peak_pair_corr'] = self.__find_peak_pairs_per_label(self.peak_data_pos, self.area_colnames_pos, polarity, label)
+                self.label_pairs[label]['pos']['peak_pair_area_parent'], \
+                self.label_pairs[label]['pos']['peak_pair_area_heavy'], \
+                self.label_pairs[label]['pos']['peak_pair_labelp'], \
+                self.label_pairs[label]['pos']['area_ratio_mask'], \
+                self.label_pairs[label]['pos']['peak_pair_corr'] = \
+                self.__find_peak_pairs_per_label(self.peak_data_pos, \
+                                                 self.area_colnames_pos, \
+                                                 polarity, label)
             elif polarity == 'neg':
-                self.label_pairs[label]['neg']['peak_pair_area_parent'], self.label_pairs[label]['neg']['peak_pair_area_heavy'], self.label_pairs[label]['neg']['peak_pair_labelp'], self.label_pairs[label]['neg']['area_ratio_mask'], self.label_pairs[label]['neg']['peak_pair_corr'] = self.__find_peak_pairs_per_label(self.peak_data_neg, self.area_colnames_neg, polarity, label)
+                self.label_pairs[label]['neg']['peak_pair_area_parent'], \
+                self.label_pairs[label]['neg']['peak_pair_area_heavy'], \
+                self.label_pairs[label]['neg']['peak_pair_labelp'], \
+                self.label_pairs[label]['neg']['area_ratio_mask'], \
+                self.label_pairs[label]['neg']['peak_pair_corr'] = \
+                self.__find_peak_pairs_per_label(self.peak_data_neg, \
+                                                 self.area_colnames_neg, \
+                                                 polarity, label)
             else:
                 raise Exception('The polarity "{}" could not be recognized, not pos/neg.'.format(polarity))
 
@@ -410,12 +429,12 @@ Merged closely related peaks: {}\n\
         # Columns in peak pair table:
         pair_info_mask = ['pair_id', 'MW_parent', 'RT_parent', 'MW_heavy', 'RT_heavy',
                           'polarity', 'label', 'name', 'RT_diff', 'MW_ppm_diff', 'known_anno']
-        pair_columns = self._cp.deepcopy(pair_info_mask)
+        pair_columns = cp.deepcopy(pair_info_mask)
         # Add area to the peak pair table:
         pair_columns.extend(area_colnames)
         # Make a table for the area of parent/heavy compound:
-        peak_pair_area_parent = self._pd.DataFrame(columns = pair_columns)
-        peak_pair_area_heavy = self._pd.DataFrame(columns = pair_columns)
+        peak_pair_area_parent = pd.DataFrame(columns = pair_columns)
+        peak_pair_area_heavy = pd.DataFrame(columns = pair_columns)
 
         peak_pair_set = set()
         ppm_cutoff = self.params['pair_ppm_tol']
@@ -427,7 +446,7 @@ Merged closely related peaks: {}\n\
         # Iterate over peaks to match on MW/RT criteria:
         for i in range(len(peak_data)):
             # Retention time criterium:
-            RT_diff_mask = self._np.abs(RT[i] - RT) <= RT_tol
+            RT_diff_mask = np.abs(RT[i] - RT) <= RT_tol
             # Mass shift criterium:
             MW_tol = MW[i] * 1e-6 * ppm_cutoff
             MW_diff_high = MW_shift + MW_tol
@@ -437,7 +456,7 @@ Merged closely related peaks: {}\n\
             # Make a mask and store peak pairs:
             mask = (RT_diff_mask & MW_diff_higer_mask)
             if mask.sum() > 0:
-                for j in self._np.where(mask)[0]:
+                for j in np.where(mask)[0]:
                     # Because df is sorted by MW,
                     # i is parent, j is heavy
                     CD_name = peak_data.loc[i, 'name']
@@ -447,16 +466,16 @@ Merged closely related peaks: {}\n\
                     peak_pair_set.add(pair_id)
 
                     # Add data to each peak pair table:
-                    tmp_df = self._pd.DataFrame(columns = pair_columns)
+                    tmp_df = pd.DataFrame(columns = pair_columns)
                     RT_diff = np.abs(RT[i] - RT[j])
                     MW_ppm_diff = np.abs((MW[i] + MW_shift) - MW[j]) / MW[i] * 1e6
-                    tmp_df.loc[i, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, RT_diff, MW_ppm_diff, known_anno], dtype=object)
+                    tmp_df.loc[i, pair_info_mask] = np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, RT_diff, MW_ppm_diff, known_anno], dtype=object)
                     tmp_df.loc[i, area_colnames] = peak_data.loc[i, area_colnames]
-                    peak_pair_area_parent = peak_pair_area_parent.append(tmp_df, ignore_index=True)
-                    tmp_df = self._pd.DataFrame(columns = pair_columns)
+                    peak_pair_area_parent = pd.concat((peak_pair_area_parent, tmp_df), ignore_index=True)
+                    tmp_df = pd.DataFrame(columns = pair_columns)
                     tmp_df.loc[j, area_colnames] = peak_data.loc[j, area_colnames]
-                    tmp_df.loc[j, pair_info_mask] = self._np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, RT_diff, MW_ppm_diff, known_anno], dtype=object)
-                    peak_pair_area_heavy = peak_pair_area_heavy.append(tmp_df, ignore_index=True)
+                    tmp_df.loc[j, pair_info_mask] = np.array([pair_id, MW[i], RT[i], MW[j], RT[j], polarity, label, CD_name, RT_diff, MW_ppm_diff, known_anno], dtype=object)
+                    peak_pair_area_heavy = pd.concat((peak_pair_area_heavy, tmp_df), ignore_index=True)
 
         # Reset index for peak pairs:
         peak_pair_area_parent.reset_index(drop=True, inplace=True)
@@ -478,8 +497,8 @@ Merged closely related peaks: {}\n\
 
         # Add pair info:
         pair_info_df = peak_pair_area_heavy.loc[:, pair_info_mask]
-        peak_pair_labelp = self._pd.concat([pair_info_df, peak_pair_labelp], axis=1, sort=False)
-        area_ratio_mask = self._pd.concat([pair_info_df, area_ratio_mask], axis=1, sort=False)
+        peak_pair_labelp = pd.concat([pair_info_df, peak_pair_labelp], axis=1, sort=False)
+        area_ratio_mask = pd.concat([pair_info_df, area_ratio_mask], axis=1, sort=False)
 
         # Find and drop rows with insufficient number of samples passing the area ratio criterium:
         area_ratio_drop = list()
@@ -498,7 +517,7 @@ Merged closely related peaks: {}\n\
         a = a.astype(float)
         peak_pair_corr = a.T.corr().abs()
         pair_info_df = peak_pair_area_parent.sort_values(by='RT_parent', ascending=True).loc[:, pair_info_mask]
-        peak_pair_corr = self._pd.concat([pair_info_df, peak_pair_corr], axis=1, sort=False)
+        peak_pair_corr = pd.concat([pair_info_df, peak_pair_corr], axis=1, sort=False)
 
         return(peak_pair_area_parent, peak_pair_area_heavy, peak_pair_labelp, area_ratio_mask, peak_pair_corr)
 
@@ -560,19 +579,19 @@ Merged closely related peaks: {}\n\
         The criteria are applied on the parent peaks of each peak pair.
         '''
         # Read adduct table:
-        adduct_df = self._pd.read_csv(adducts_fnam, sep='\t', comment='#')
+        adduct_df = pd.read_csv(adducts_fnam, sep='\t', comment='#')
         # Store adducts in this dict:
         adduct_flag = {i: [] for i in range(len(pair_df))}
         
         # Loop through each pair:
         MW = pair_df['MW_parent'].values
         RT = pair_df['RT_parent'].values
-        area_sum = self._np.sum(pair_df.loc[:, area_colnames].values.astype(float), axis=1)
+        area_sum = np.sum(pair_df.loc[:, area_colnames].values.astype(float), axis=1)
         for i in range(len(pair_df)):
             # Make a dict with "mass: adduct_name":
             adducts = self.__adduct_expansion(MW[i], adduct_df, polarity)
             # Retention time criterium:
-            RT_diff_mask = self._np.abs(RT[i] - RT) <= self.params['adduct_RT_tol']
+            RT_diff_mask = np.abs(RT[i] - RT) <= self.params['adduct_RT_tol']
             # Smaller area criterium:
             area_mask = area_sum[i] > area_sum
 
@@ -582,11 +601,11 @@ Merged closely related peaks: {}\n\
                 MW_tol = MW_adduct * 1e-6 * self.params['adduct_ppm_tol']
                 # Skip adduct if it is M+H or M-H:
                 ### Not necessary with area criterium.
-                if self._np.abs(MW_adduct - MW[i]) >= MW_tol:
-                    MW_diff_mask = self._np.abs(MW_adduct - MW) <= MW_tol
+                if np.abs(MW_adduct - MW[i]) >= MW_tol:
+                    MW_diff_mask = np.abs(MW_adduct - MW) <= MW_tol
                     # Make a mask and store peak pairs:
                     mask = MW_diff_mask & RT_diff_mask & area_mask
-                    for idx in self._np.where(mask)[0]:
+                    for idx in np.where(mask)[0]:
                         adduct_flag[idx].append((i, adducts[MW_adduct]))
 
         # Return list of adduct flags:
@@ -687,12 +706,12 @@ Merged closely related peaks: {}\n\
         MW = pair_df['MW_parent'].values
         RT = pair_df['RT_parent'].values
         area = pair_df.loc[:, area_colnames].values.astype(float)
-        area_sum = self._np.sum(area, axis=1)
+        area_sum = np.sum(area, axis=1)
         for i in range(len(pair_df)):
             # Make a dict with "mass: isotope_name":
             isotopes = {isotope_set[iso_tup]['mass_shift']: ' '.join(iso_tup) for iso_tup in isotope_set}
             # Retention time criterium:
-            RT_diff_mask = self._np.abs(RT[i] - RT) <= self.params['isotope_RT_tol']
+            RT_diff_mask = np.abs(RT[i] - RT) <= self.params['isotope_RT_tol']
             # Smaller area criterium:
             area_mask = area_sum[i] > area_sum
             # Peak area correlation criterium:
@@ -703,10 +722,10 @@ Merged closely related peaks: {}\n\
                 MW_isotope = MW_shift_isotope + MW[i]
                 # Mass shift criterium:
                 MW_tol = MW_isotope * 1e-6 * self.params['isotope_ppm_tol']
-                MW_diff_mask = self._np.abs(MW_isotope - MW) <= MW_tol
+                MW_diff_mask = np.abs(MW_isotope - MW) <= MW_tol
                 # Make a mask and store peak pairs:
                 mask = MW_diff_mask & RT_diff_mask & area_mask & corr_mask
-                for idx in self._np.where(mask)[0]:
+                for idx in np.where(mask)[0]:
                     isotope_flag[idx].append((i, isotopes[MW_shift_isotope]))
 
         # Return list of isotope flags:
@@ -778,15 +797,15 @@ Merged closely related peaks: {}\n\
             MW_i = blacklist[peak]['MW']
             RT_i = blacklist[peak]['RT']
             # Retention time criterium:
-            RT_diff_mask = self._np.abs(RT_i - RT) <= blacklist[peak]['RT_tol']
+            RT_diff_mask = np.abs(RT_i - RT) <= blacklist[peak]['RT_tol']
             # Mass shift criterium:
             MW_tol = MW_i * 1e-6 * blacklist[peak]['MW_ppm_tol']
-            MW_diff_mask = self._np.abs(MW_i - MW) <= MW_tol
+            MW_diff_mask = np.abs(MW_i - MW) <= MW_tol
             mask = (RT_diff_mask & MW_diff_mask)
 
             # If found, add description:
             if mask.sum() > 0:
-                for idx in self._np.where(mask)[0]:
+                for idx in np.where(mask)[0]:
                     blacklist_flag[idx].append(blacklist[peak]['Description'])
 
         # Return list of blacklist flags:
@@ -867,7 +886,7 @@ Merged closely related peaks: {}\n\
 
     # Write the peak pair tables as excel file:
     def write_pairs(self, filename, polarity):
-        writer = self._pd.ExcelWriter('{}.xlsx'.format(filename))
+        writer = pd.ExcelWriter('{}.xlsx'.format(filename))
         # Iterate over labels:
         for label in sorted(self.label_pairs.keys()):
             # Assign variables according to polarity:
@@ -885,6 +904,7 @@ Merged closely related peaks: {}\n\
             area_ratio_mask.to_excel(writer, sheet_name='area_ratio_{}'.format(label))
 
         writer.close()
+
 
 def set2csv(s):
     return(', '.join(str(si) for si in sorted(s)))
@@ -1008,12 +1028,8 @@ def write_filterset(excel_peak_pairs, filename, pair_ppm_tol=2, RT_tol=0.1):
     with open(filename, 'w') as fh:
         print(full_entry, file=fh)
 
-class Isotopes:
-    import pandas as _pd
-    import numpy as _np
-    import random as _rd
-    import copy as _cp
 
+class Isotopes:
     def __init__(self, IUPAC_atomic_masses, IUPAC_atomic_abundances):
         # Initiate by parsing IUPAC information:
         self.IUPAC_atomic_masses = IUPAC_atomic_masses
@@ -1026,8 +1042,6 @@ class Isotopes:
         self.relevant_isotopes = ['[2]H', '[13]C', '[15]N', '[17]O', '[18]O', '[33]S', '[34]S', '[36]S']
         self.iso_set = None
         
-        
-
     def find_iso_set(self, iso_names=None, min_abs=1e-7):
         '''Function wrapper, to avoid global variables.'''
         if iso_names is None:
@@ -1190,7 +1204,6 @@ class Isotopes:
         isotopic abundance.
         Then return this as a dataframe and a dictionary.
         '''
-        import warnings
         # The csv file with atomic masses contains
         # html links with the year when the measurement was made
         # therefore make a parser to extract this year:
@@ -1204,7 +1217,7 @@ class Isotopes:
         html_parser = MyHTMLParser()
         
         # Read the IUPAC masses into a dataframe:
-        iupac_masses = self._pd.read_csv(IUPAC_atomic_masses, sep=',', comment='#')
+        iupac_masses = pd.read_csv(IUPAC_atomic_masses, sep=',', comment='#')
         # Extract the year of measurement:
         for html_link in iupac_masses['Year/link'].values:
             html_parser.feed(html_link)
@@ -1216,7 +1229,7 @@ class Isotopes:
         iupac_masses_agg = iupac_masses_agg.drop(['year'], axis=1)
 
         # Read the IUPAC abundances into a dataframe:
-        iupac_abundances = self._pd.read_html(IUPAC_atomic_abundances, encoding='utf-8')[0]
+        iupac_abundances = pd.read_html(IUPAC_atomic_abundances, encoding='utf-8')[0]
         Z_number = iupac_abundances['Z'].str.isnumeric().fillna(False)
         iupac_abundances = iupac_abundances[Z_number]
         iupac_abundances['nuclide'] = [A+E for A, E in zip(iupac_abundances['A'].values, iupac_abundances['E'].values)]

@@ -323,58 +323,205 @@
 	"label": "cys",
 	"group": "NRF2-const, Vehicle"
 },
+"AV102622_102622_AV01": {
+	"name": "SSP25_13C-Glc_0m_1",
+	"order": 46,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 0m"
+},
+"AV102622_102622_AV02": {
+	"name": "SSP25_13C-Glc_0m_2",
+	"order": 47,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 0m"
+},
+"AV102622_102622_AV03": {
+	"name": "SSP25_13C-Glc_0m_3",
+	"order": 48,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 0m"
+},
+"AV102622_102622_AV04": {
+	"name": "SSP25_13C-Glc_5m_1",
+	"order": 49,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 5m"
+},
+"AV102622_102622_AV05": {
+	"name": "SSP25_13C-Glc_5m_2",
+	"order": 50,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 5m"
+},
+"AV102622_102622_AV06": {
+	"name": "SSP25_13C-Glc_5m_3",
+	"order": 51,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 5m"
+},
+"AV102622_102622_AV07": {
+	"name": "SSP25_13C-Glc_30m_1",
+	"order": 52,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 30m"
+},
+"AV102622_102622_AV08": {
+	"name": "SSP25_13C-Glc_30m_2",
+	"order": 53,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 30m"
+},
+"AV102622_102622_AV09": {
+	"name": "SSP25_13C-Glc_30m_3",
+	"order": 54,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 30m"
+},
+"AV102622_102622_AV10": {
+	"name": "SSP25_13C-Glc_2h_1",
+	"order": 55,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 2h"
+},
+"AV102622_102622_AV11": {
+	"name": "SSP25_13C-Glc_2h_2",
+	"order": 56,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 2h"
+},
+"AV102622_102622_AV12": {
+	"name": "SSP25_13C-Glc_2h_3",
+	"order": 57,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 2h"
+},
+"AV102622_102622_AV13": {
+	"name": "SSP25_13C-Glc_4h_1",
+	"order": 58,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 4h"
+},
+"AV102622_102622_AV14": {
+	"name": "SSP25_13C-Glc_4h_2",
+	"order": 59,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 4h"
+},
+"AV102622_102622_AV15": {
+	"name": "SSP25_13C-Glc_4h_3",
+	"order": 60,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 4h"
+},
+"AV102622_102622_AV16": {
+	"name": "SSP25_13C-Glc_6h_1",
+	"order": 61,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 6h"
+},
+"AV102622_102622_AV17": {
+	"name": "SSP25_13C-Glc_6h_2",
+	"order": 62,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 6h"
+},
+"AV102622_102622_AV18": {
+	"name": "SSP25_13C-Glc_6h_3",
+	"order": 63,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 6h"
+},
+"AV102622_102622_AV19": {
+	"name": "SSP25_13C-Glc_24h_1",
+	"order": 64,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 24h"
+},
+"AV102622_102622_AV20": {
+	"name": "SSP25_13C-Glc_24h_2",
+	"order": 65,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 24h"
+},
+"AV102622_102622_AV21": {
+	"name": "SSP25_13C-Glc_24h_3",
+	"order": 66,
+	"type": "sample",
+	"label": "None",
+	"group": "SSP25, 24h"
+},
 "extraction-blank_neg_01": {
 	"name": "extr_blank",
-	"order": 46,
+	"order": 67,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "solvent-blank_neg_01": {
 	"name": "sol_blank_1",
-	"order": 47,
+	"order": 68,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "solvent-blank_neg_02": {
 	"name": "sol_blank_2",
-	"order": 48,
+	"order": 69,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "solvent-blank_neg_03": {
 	"name": "sol_blank_3",
-	"order": 49,
+	"order": 70,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "extraction-blank_pos_01": {
 	"name": "extr_blank",
-	"order": 46,
+	"order": 67,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "solvent-blank_pos_01": {
 	"name": "sol_blank_1",
-	"order": 47,
+	"order": 68,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "solvent-blank_pos_02": {
 	"name": "sol_blank_2",
-	"order": 48,
+	"order": 69,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"
 },
 "solvent-blank_pos_03": {
 	"name": "sol_blank_3",
-	"order": 49,
+	"order": 70,
 	"type": "blank",
 	"label": "None",
 	"group": "blank"

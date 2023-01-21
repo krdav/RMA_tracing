@@ -24,6 +24,8 @@ DHAP Cys	m	C6 H11 N O4 S	7.274	5	4
 DHAP Cys	m+4	C3 [13]C3 H11 [15]N O4 S	7.274	5	4
 G6P Cys	m	C9 H17 N O7 S	9.47	5	4
 G6P Cys	m+4	C6 [13]C3 H17 [15]N O7 S	9.47	5	4
+BPG Cys	m	C6 H11 N O5 S	7.017	5	4
+BPG Cys	m+4	C3 [13]C3 H11 [15]N O5 S	7.017	5	4
 Glutamylcysteine	m	C8 H14 N2 O5 S	9.792	5	4
 Glutamylcysteine	m+4	C5 [13]C3 H14 N [15]N O5 S	9.792	5	4
 Succinylcysteine	m	C7 H11 N O6 S	11.846	5	4
