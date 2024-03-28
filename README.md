@@ -26,23 +26,25 @@ Three examples are provided:
 
 ### Choice of tracer
 We provide examples using two tracers: m+4 cysteine (13C3, 15N) and m+5 glutamine (13C5).
-Other tracers can be used by defining their isotope composition (isotopomer) using a space separated list of [<nominal mass>]<element name><element quantity> e.g. the m+3 serine isotopologue with 18O on the hydroxyl and 15N on the amino would be indentified as: [15]N1 [18]O1 (if the element quantity is not supplied it is assumed 1).
-Or m+3 serine with uniformly labelled 13C would be indentified as: [13]C3.
-These can be specified as `'labels'` in the `params` dictionary, for example:
+Other tracers can be used by defining their isotope composition (isotopomer) using a space separated list of [\<nominal mass\>]\<element name\>\<element quantity\> e.g. the m+3 serine isotopologue with 18O on the hydroxyl and 15N on the amino would be indentified as: `[15]N1 [18]O1` (if the element quantity is not supplied it is assumed 1).
+Or m+3 serine with uniformly labelled 13C would be indentified as: `[13]C3`.
+These can be specified as `'labels'` in the `params` dictionary.
+For example:
 ```
 'labels': {
     'ser_m3_1': '[15]N [18]O',
-    'ser_m3_2': '[13]C3'
-    }
+    'ser_m3_2': '[13]C3',
+},
 ```
 
 These label names must be consistent with those used in the input JSON file that describes the samples.
 They are also used to refer back to the peak area ratio: parent/(parent+heavy).
-For example using a ratio of 0.4 to 0.6 for ser_m3_1 and 0.5 to 0.7 ser_m3_2:
+For example using a ratio of 0.4 to 0.6 for `ser_m3_1` and 0.5 to 0.7 for `ser_m3_2`:
 ```
 'area_ratio_cutoff': {
     'ser_m3_1': ((0.4, 0.6),),
-    'ser_m3_2': ((0.5, 0.7),)
+    'ser_m3_2': ((0.5, 0.7),),
+},
 ```
 
 Finally, the mass shift for each label must be specified.
@@ -50,7 +52,8 @@ This can be input manually like this:
 ```
 'MW_shift': {
     'ser_m3_1': 3.001279886900008,
-    'ser_m3_2': 3.010064506020001
+    'ser_m3_2': 3.010064506020001,
+},
 ```
 
 But can also be calculated in place using the isotope composition:
@@ -63,11 +66,10 @@ for label in params['labels']:
 
 #### A note on natural abundance correction
 We do not apply natural abundance correction for the simple reason that we do not know the chemical formula of the unknown RMA traced compounds.
-For some RMA traced compounds we of course have their chemical formula and could perform natural abundance correction; however, since the purpose of this method is to identify unknwon metabolites, we chose to treat known and unknown compounds consistently and thus skip natural abundance correction all together.
-This choice is not a problem for tracers without substantial bleed over from natural abundance e.g. 13C3, 13C4, {13C3, 15N} etc.
+For some RMA traced compounds we of course have their chemical formula and could perform natural abundance correction; however, since the purpose of this method is to identify unknown metabolites, we chose to treat known and unknown compounds consistently and thus skip natural abundance correction all together.
+This choice is not a problem for tracers that have no substantial bleed over from natural abundance e.g. 13C3, 13C4, {13C3, 15N} etc.
 However, tracers with single labels like 15N and 13C, and to a lesser extent tracers with double labels like 15N2, 13C2 and {15N, 13C}, are not as robust.
 Prospective users must consider this when designing experiments.
-
 
 
 ### Input requirements
